@@ -1,0 +1,1908 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>三麗鷗像素水世界大富翁 - 小三常識測驗溫習</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --pixel-border: 4px solid #2d1b4e;
+            --pixel-shadow: 4px 4px 0px #2d1b4e;
+            --pixel-shadow-sm: 2px 2px 0px #2d1b4e;
+        }
+        body {
+            font-family: 'Noto Sans TC', 'DotGothic16', sans-serif;
+            background-color: #e0f2fe;
+            background-image: 
+                radial-gradient(#bae6fd 20%, transparent 20%),
+                radial-gradient(#f0f9ff 20%, transparent 20%);
+            background-position: 0 0, 16px 16px;
+            background-size: 32px 32px;
+            user-select: none;
+            overflow-x: hidden;
+        }
+        .pixel-font {
+            font-family: 'DotGothic16', 'Noto Sans TC', sans-serif;
+        }
+        .pixel-box {
+            border: var(--pixel-border);
+            box-shadow: var(--pixel-shadow);
+            border-radius: 12px;
+        }
+        .pixel-box-sm {
+            border: 3px solid #2d1b4e;
+            box-shadow: var(--pixel-shadow-sm);
+            border-radius: 8px;
+        }
+        .pixel-btn {
+            border: 3px solid #2d1b4e;
+            box-shadow: 0 5px 0 #2d1b4e;
+            transition: all 0.1s ease;
+            border-radius: 10px;
+            cursor: pointer;
+        }
+        .pixel-btn:active:not(:disabled) {
+            transform: translateY(4px);
+            box-shadow: 0 1px 0 #2d1b4e;
+        }
+        .pixel-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        /* 6x6 Perimeter Board Grid */
+        .board-grid {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            grid-template-rows: repeat(6, minmax(0, 1fr));
+            gap: 6px;
+            width: 100%;
+            height: 100%;
+        }
+        .center-stage {
+            grid-column: 2 / 6;
+            grid-row: 2 / 6;
+        }
+        @keyframes bounce-slow {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+        .animate-bounce-slow {
+            animation: bounce-slow 2s infinite ease-in-out;
+        }
+        @keyframes pulse-ring {
+            0% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0.7), 3px 3px 0px #2d1b4e; }
+            70% { box-shadow: 0 0 0 10px rgba(236, 72, 153, 0), 3px 3px 0px #2d1b4e; }
+            100% { box-shadow: 0 0 0 0 rgba(236, 72, 153, 0), 3px 3px 0px #2d1b4e; }
+        }
+        .active-tile-glow {
+            animation: pulse-ring 1.4s infinite;
+            z-index: 20;
+            border-color: #db2777 !important;
+        }
+        svg.pixel-art {
+            shape-rendering: crispEdges;
+        }
+        ::-webkit-scrollbar {
+            width: 10px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-left: 2px solid #2d1b4e;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border: 2px solid #2d1b4e;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col">
+
+    <!-- TOP NAVIGATION BAR -->
+    <header class="bg-gradient-to-r from-pink-400 via-purple-400 to-sky-400 border-b-4 border-[#2d1b4e] px-4 py-2 flex flex-wrap items-center justify-between gap-2 z-30">
+        <div class="flex items-center gap-3">
+            <span class="text-3xl">💧</span>
+            <div>
+                <h1 class="text-xl md:text-2xl font-black text-white drop-shadow-[2px_2px_0px_#2d1b4e] tracking-wide">
+                    三麗鷗像素水世界大富翁
+                </h1>
+                <p class="text-xs md:text-sm font-bold text-yellow-100 drop-shadow-[1px_1px_0px_#2d1b4e]">
+                    小三常識測驗(二) 滿分溫習版 • 100題隨機題庫 • 不計時安全白板互動
+                </p>
+            </div>
+        </div>
+
+        <!-- Game Controls & Timer -->
+        <div id="topGameControls" class="hidden flex items-center flex-wrap gap-2">
+            <!-- Approximate Total Timer -->
+            <div class="bg-white px-3 py-1 pixel-box-sm flex items-center gap-2">
+                <span class="text-lg">⏰</span>
+                <span class="text-xs font-bold text-slate-500">預計課堂時間:</span>
+                <span id="timerDisplay" class="font-black text-lg text-purple-700 pixel-font">20:00</span>
+                <button onclick="togglePauseTimer()" id="pauseTimerBtn" class="text-xs bg-slate-200 hover:bg-slate-300 px-2 py-0.5 rounded border border-slate-400 font-bold">暫停</button>
+            </div>
+
+            <!-- Auto TTS Toggle -->
+            <button onclick="toggleAutoTTS()" id="autoTtsBtn" class="bg-emerald-400 hover:bg-emerald-500 text-slate-900 font-black px-3 py-1.5 pixel-btn text-xs md:text-sm flex items-center gap-1">
+                <span>🔊</span> <span id="autoTtsLabel">自動讀題: 開</span>
+            </button>
+
+            <!-- Sound Effects Toggle -->
+            <button onclick="toggleSFX()" id="sfxBtn" class="bg-amber-300 hover:bg-amber-400 text-slate-900 font-black px-3 py-1.5 pixel-btn text-xs md:text-sm flex items-center gap-1">
+                <span>🎵</span> <span id="sfxLabel">音效: 開</span>
+            </button>
+
+            <!-- Teacher Direct Exam Review Mode Button -->
+            <button onclick="openPostGameExamModal()" class="bg-rose-500 hover:bg-rose-600 text-white font-black px-3 py-1.5 pixel-btn text-xs md:text-sm flex items-center gap-1">
+                <span>📝</span> 結束並進入測驗溫習
+            </button>
+        </div>
+    </header>
+
+    <!-- ==================== 1. SETUP SCREEN ==================== -->
+    <main id="setupScreen" class="flex-1 flex items-center justify-center p-4">
+        <div class="max-w-5xl w-full bg-white/95 pixel-box p-5 md:p-8 relative overflow-hidden">
+            <div class="text-center mb-5">
+                <div class="inline-block bg-yellow-300 px-4 py-1 pixel-box-sm font-black text-purple-900 text-sm mb-2">
+                    🎮 班級電子白板互動遊戲 (答題不限時間 • 同學放心走出來作答)
+                </div>
+                <h2 class="text-2xl md:text-4xl font-black text-purple-900 mb-1">
+                    ✨ 三麗鷗像素水世界大富翁 ✨
+                </h2>
+                <p class="text-slate-600 font-bold text-sm md:text-base">
+                    買地、升級、機會、有獎問題及小遊戲，都要先答對《常識測驗(二)：水》題目才可以進行！
+                </p>
+            </div>
+
+            <!-- Character Preview Row -->
+            <div class="mb-6">
+                <h3 class="text-center font-black text-slate-700 mb-3 flex items-center justify-center gap-2 text-sm md:text-base">
+                    <span>🌟</span> 6 位男女生都喜愛的三麗鷗像素角色 <span>🌟</span>
+                </h3>
+                <div id="setupCharPreview" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                    <!-- Populated by JS -->
+                </div>
+            </div>
+
+            <!-- Settings Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+                <!-- Player Count Selector -->
+                <div class="bg-sky-50 p-4 pixel-box-sm">
+                    <label class="block text-base md:text-lg font-black text-sky-900 mb-3 flex items-center gap-2">
+                        <span>👥</span> 1. 選擇參加人數 / 組別數目：
+                    </label>
+                    <div class="grid grid-cols-4 gap-2.5">
+                        <button onclick="selectPlayerCount(3)" id="pCount-3" class="pcount-btn py-2.5 font-black text-base md:text-lg pixel-btn bg-white text-slate-700">3 組</button>
+                        <button onclick="selectPlayerCount(4)" id="pCount-4" class="pcount-btn py-2.5 font-black text-base md:text-lg pixel-btn bg-pink-500 text-white">4 組</button>
+                        <button onclick="selectPlayerCount(5)" id="pCount-5" class="pcount-btn py-2.5 font-black text-base md:text-lg pixel-btn bg-white text-slate-700">5 組</button>
+                        <button onclick="selectPlayerCount(6)" id="pCount-6" class="pcount-btn py-2.5 font-black text-base md:text-lg pixel-btn bg-white text-slate-700">6 組</button>
+                    </div>
+                    <p class="text-xs text-slate-500 font-bold mt-2">
+                        💡 適合全班分為 3 至 6 組，輪流派不同程度的學生代表出來白板前擲骰子及答題！
+                    </p>
+                </div>
+
+                <!-- Duration Selector -->
+                <div class="bg-pink-50 p-4 pixel-box-sm">
+                    <label class="block text-base md:text-lg font-black text-pink-900 mb-3 flex items-center gap-2">
+                        <span>⏱️</span> 2. 選擇遊戲大概總時長：
+                    </label>
+                    <div class="grid grid-cols-3 gap-2.5">
+                        <button onclick="selectDuration(10)" id="dur-10" class="dur-btn py-2.5 font-black text-base md:text-lg pixel-btn bg-white text-slate-700">10 分鐘</button>
+                        <button onclick="selectDuration(20)" id="dur-20" class="dur-btn py-2.5 font-black text-base md:text-lg pixel-btn bg-purple-600 text-white">20 分鐘</button>
+                        <button onclick="selectDuration(40)" id="dur-40" class="dur-btn py-2.5 font-black text-base md:text-lg pixel-btn bg-white text-slate-700">40 分鐘</button>
+                    </div>
+                    <p class="text-xs text-slate-500 font-bold mt-2">
+                        🛡️ <b>安全貼心設計：</b>總時長只作課堂參考，<b>每道題目不設倒數計時</b>，免得學生走出來時太心急發生意外。
+                    </p>
+                </div>
+            </div>
+
+            <!-- Question Bank Info -->
+            <div class="bg-amber-50 p-4 pixel-box-sm mb-6 flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">📚</span>
+                    <div>
+                        <div class="font-black text-amber-900 text-sm md:text-base">內置 100 題《小三常識測驗(二)：水》隨機題庫 (支援語音讀題)</div>
+                        <div class="text-xs font-bold text-amber-800">
+                            隨機出現 ⭐容易題、⭐⭐中等題、⭐⭐⭐困難挑戰題（附設「💡錦囊提示」及圖案選項，照顧班上不同程度學生）
+                        </div>
+                    </div>
+                </div>
+                <button onclick="openPostGameExamModal()" class="bg-white hover:bg-amber-100 text-amber-900 font-black px-4 py-2 pixel-btn text-xs md:text-sm">
+                    👀 直接預覽測驗卷溫習模式
+                </button>
+            </div>
+
+            <!-- Start Button -->
+            <div class="text-center">
+                <button onclick="startGame()" class="bg-gradient-to-r from-pink-500 via-purple-500 to-sky-500 hover:from-pink-600 hover:to-sky-600 text-white font-black text-xl md:text-2xl px-10 py-3.5 pixel-btn tracking-wider">
+                    🎲 開始三麗鷗大富翁！
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <!-- ==================== 2. MAIN GAME SCREEN ==================== -->
+    <main id="gameScreen" class="hidden flex-1 flex flex-col lg:flex-row gap-3 p-2 md:p-3 max-w-[1600px] w-full mx-auto overflow-hidden">
+        
+        <!-- LEFT SIDEBAR: Player Status Cards -->
+        <aside class="w-full lg:w-72 flex flex-col gap-2 shrink-0">
+            <div class="bg-white pixel-box-sm p-2.5 flex items-center justify-between">
+                <span class="font-black text-purple-900 flex items-center gap-1 text-sm">
+                    <span>👑</span> 參賽組別資產榜
+                </span>
+                <span id="questionCounterBadge" class="text-xs bg-sky-100 text-sky-800 font-black px-2 py-0.5 rounded border border-sky-300">
+                    題庫: 0 / 100
+                </span>
+            </div>
+            <div id="playerSidebarList" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-1 gap-2 flex-1">
+                <!-- Populated dynamically -->
+            </div>
+        </aside>
+
+        <!-- CENTER / RIGHT: 20-Tile Perimeter Monopoly Board -->
+        <section class="flex-1 bg-sky-200/80 pixel-box p-2 md:p-3 flex items-center justify-center min-h-[540px]">
+            <div id="boardGrid" class="board-grid">
+                <!-- 20 Tiles + Center Stage populated by JS -->
+            </div>
+        </section>
+    </main>
+
+    <!-- ==================== 3. QUESTION MODAL (買地/機會/問題/小遊戲必答) ==================== -->
+    <div id="questionModal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 md:p-6 overflow-y-auto">
+        <div class="max-w-3xl w-full bg-white pixel-box overflow-hidden my-auto">
+            <!-- Modal Header -->
+            <div id="qModalHeader" class="bg-gradient-to-r from-purple-500 to-pink-500 px-5 py-3 border-b-4 border-[#2d1b4e] flex flex-wrap items-center justify-between gap-2 text-white">
+                <div class="flex items-center gap-2">
+                    <span id="qModalActionIcon" class="text-2xl">🏠</span>
+                    <span id="qModalActionTitle" class="font-black text-lg md:text-xl drop-shadow-[1px_1px_0px_#2d1b4e]">
+                        買地挑戰題
+                    </span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span id="qDifficultyBadge" class="bg-yellow-300 text-purple-900 font-black px-3 py-1 rounded-full border-2 border-[#2d1b4e] text-xs md:text-sm">
+                        ⭐⭐ 中等題
+                    </span>
+                    <span class="bg-emerald-100 text-emerald-900 font-black px-3 py-1 rounded-full border-2 border-[#2d1b4e] text-xs">
+                        🛡️ 不計時間 • 放心作答
+                    </span>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-4 md:p-6">
+                <!-- Current Player Banner + Read Aloud + Hint Buttons -->
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-4 bg-slate-100 p-3 pixel-box-sm">
+                    <div class="flex items-center gap-3">
+                        <div id="qPlayerAvatar" class="w-12 h-12 bg-white pixel-box-sm flex items-center justify-center p-1 shrink-0"></div>
+                        <div>
+                            <div class="text-xs font-bold text-slate-500">現在作答組別：</div>
+                            <div id="qPlayerName" class="text-base md:text-lg font-black text-purple-900">酷洛米組</div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <!-- Read Aloud Button -->
+                        <button onclick="readCurrentQuestionAloud()" class="bg-sky-400 hover:bg-sky-500 text-slate-900 font-black px-3.5 py-2 pixel-btn flex items-center gap-1.5 text-sm md:text-base">
+                            <span>🔊</span> 朗讀題目及選項
+                        </button>
+                        <!-- Hint Button -->
+                        <button onclick="showQuestionHint()" id="hintBtn" class="bg-amber-300 hover:bg-amber-400 text-slate-900 font-black px-3.5 py-2 pixel-btn flex items-center gap-1.5 text-sm md:text-base">
+                            <span>💡</span> 錦囊提示
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Visual Aid Graphic Card + Question Text -->
+                <div class="bg-gradient-to-b from-sky-50 to-white p-4 md:p-5 pixel-box-sm mb-4 text-center">
+                    <div id="qVisualGraphic" class="text-4xl md:text-5xl mb-2 select-none">
+                        💧⛰️⬇️
+                    </div>
+                    <h3 id="qText" class="text-lg md:text-2xl font-black text-slate-800 leading-relaxed">
+                        題目載入中...
+                    </h3>
+                </div>
+
+                <!-- Hint Box -->
+                <div id="qHintBox" class="hidden bg-amber-100 border-2 border-amber-600 rounded-xl p-3 mb-4 text-amber-950 font-bold flex items-center gap-2 text-sm md:text-base">
+                    <span class="text-2xl">💡</span>
+                    <span id="qHintText">提示內容</span>
+                </div>
+
+                <!-- 4 Options Grid with Visual Icons -->
+                <div id="qOptionsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                    <!-- Populated by JS -->
+                </div>
+
+                <!-- Feedback & Action Box -->
+                <div id="qFeedbackBox" class="hidden p-4 pixel-box-sm">
+                    <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div class="flex items-center gap-3">
+                            <span id="qFeedbackIcon" class="text-4xl">🎉</span>
+                            <div>
+                                <div id="qFeedbackTitle" class="text-lg md:text-xl font-black">答對了！</div>
+                                <div id="qFeedbackDesc" class="text-sm font-bold text-slate-700 mt-0.5">解釋內容</div>
+                            </div>
+                        </div>
+                        <div id="qActionBtns" class="flex items-center gap-2 shrink-0 flex-wrap justify-center">
+                            <!-- Dynamic Post-Answer Buttons (e.g., Buy Land / Skip / Continue) -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 4. INTERACTIVE MINI-GAME MODAL ==================== -->
+    <div id="miniGameModal" class="hidden fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 md:p-6">
+        <div class="max-w-3xl w-full bg-white pixel-box overflow-hidden">
+            <div class="bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-3 border-b-4 border-[#2d1b4e] flex items-center justify-between text-white">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">🎮</span>
+                    <h3 id="mgTitle" class="font-black text-lg md:text-xl">白板互動小遊戲</h3>
+                </div>
+                <span class="bg-white text-emerald-900 font-black px-3 py-1 rounded-full border-2 border-[#2d1b4e] text-xs">
+                    🛡️ 不計時間 • 完成即獲獎金
+                </span>
+            </div>
+
+            <div id="mgContent" class="p-5 md:p-6">
+                <!-- Dynamic Mini-game injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 5. POST-GAME EXAM REVIEW & PODIUM MODAL ==================== -->
+    <div id="examReviewModal" class="hidden fixed inset-0 bg-slate-900/85 backdrop-blur-sm z-50 flex items-center justify-center p-3 md:p-6 overflow-y-auto">
+        <div class="max-w-5xl w-full bg-white pixel-box my-auto overflow-hidden max-h-[92vh] flex flex-col">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 px-5 py-3.5 border-b-4 border-[#2d1b4e] flex flex-wrap items-center justify-between gap-2 text-white shrink-0">
+                <div class="flex items-center gap-3">
+                    <span class="text-3xl">🏆</span>
+                    <div>
+                        <h2 class="text-lg md:text-2xl font-black drop-shadow-[2px_2px_0px_#2d1b4e]">
+                            三麗鷗大富翁榮譽榜 & 常識測驗(二) 滿分衝刺溫習卷
+                        </h2>
+                        <p class="text-xs font-bold text-yellow-100">
+                            玩完大富翁後，全班一起核對這份《常識測驗(二)》重點題目，考試輕鬆拿滿分！
+                        </p>
+                    </div>
+                </div>
+                <button onclick="closePostGameExamModal()" class="bg-white text-slate-900 hover:bg-slate-200 font-black px-4 py-1.5 pixel-btn text-xs md:text-sm">
+                    返回大富翁棋盤 ✖
+                </button>
+            </div>
+
+            <!-- Scrollable Content -->
+            <div class="p-4 md:p-6 overflow-y-auto space-y-6 flex-1">
+                <!-- Podium Section -->
+                <div id="podiumSection" class="bg-gradient-to-b from-yellow-50 to-pink-50 p-4 pixel-box-sm">
+                    <h3 class="text-center font-black text-lg md:text-xl text-purple-900 mb-3">👑 各組總資產排名 (水滴金幣 + 土地價值)</h3>
+                    <div id="podiumCards" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Interactive Exam Paper Review -->
+                <div class="bg-sky-50 p-4 md:p-5 pixel-box-sm space-y-6">
+                    <div class="flex flex-wrap items-center justify-between gap-2 border-b-2 border-sky-200 pb-3">
+                        <div>
+                            <span class="bg-purple-600 text-white text-xs font-black px-2.5 py-1 rounded">2627_P3_上_常識測驗(二) 完整試卷溫習</span>
+                            <h3 class="text-lg md:text-xl font-black text-slate-800 mt-1">📄 點擊黃色方格即可揭曉答案並語音朗讀</h3>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="revealAllExamAnswers(true)" class="bg-emerald-400 hover:bg-emerald-500 text-slate-900 font-black px-3 py-1.5 pixel-btn text-xs">
+                                ✨ 顯示全部答案
+                            </button>
+                            <button onclick="revealAllExamAnswers(false)" class="bg-amber-300 hover:bg-amber-400 text-slate-900 font-black px-3 py-1.5 pixel-btn text-xs">
+                                🔄 隱藏答案再考一次
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Part 1 & 2: Fill in the Blanks & Short Questions -->
+                    <div>
+                        <h4 class="font-black text-purple-900 text-base md:text-lg mb-2">一、填充題 (18%) 及 二、簡答題 (15%)</h4>
+                        <div class="space-y-2.5 text-sm md:text-base font-bold bg-white p-4 pixel-box-sm">
+                            <p>1. 水會往 <button onclick="toggleExamBlank(this, '低處')" class="exam-blank bg-yellow-100 hover:bg-yellow-200 border-2 border-dashed border-purple-700 px-3 py-0.5 rounded text-purple-900 font-black">❓ 點擊看答案</button> 流動。</p>
+                            <p>2. 水沒有顏色，沒有 <button onclick="toggleExamBlank(this, '氣味')" class="exam-blank bg-yellow-100 hover:bg-yellow-200 border-2 border-dashed border-purple-700 px-3 py-0.5 rounded text-purple-900 font-black">❓ 點擊看答案</button>，沒有味道，也沒有固定形狀。</p>
+                            <p>3. <button onclick="toggleExamBlank(this, '西江')" class="exam-blank bg-yellow-100 hover:bg-yellow-200 border-2 border-dashed border-purple-700 px-3 py-0.5 rounded text-purple-900 font-black">❓ 點擊看答案</button> 水輸入澳門的食水處理廠後，經過混凝、沉澱、過濾和消毒等程序。</p>
+                            <p>4. 無論動物還是植物都需要水才能生存，水是維持 <button onclick="toggleExamBlank(this, '生命')" class="exam-blank bg-yellow-100 hover:bg-yellow-200 border-2 border-dashed border-purple-700 px-3 py-0.5 rounded text-purple-900 font-black">❓ 點擊看答案</button> 的要素。</p>
+                            <p>5. 當火災發生時，消防員會用水來 <button onclick="toggleExamBlank(this, '滅火')" class="exam-blank bg-yellow-100 hover:bg-yellow-200 border-2 border-dashed border-purple-700 px-3 py-0.5 rounded text-purple-900 font-black">❓ 點擊看答案</button>。</p>
+                            <p>6. 水的 <button onclick="toggleExamBlank(this, '浮力')" class="exam-blank bg-yellow-100 hover:bg-yellow-200 border-2 border-dashed border-purple-700 px-3 py-0.5 rounded text-purple-900 font-black">❓ 點擊看答案</button> 可以讓船隻在水面航行。</p>
+                            <hr class="border-slate-200 my-2">
+                            <p>7. 【簡答 6%】水有甚麼用途？請說出其中二項：<button onclick="toggleExamBlank(this, '1. 運輸  2. 發電（或灌溉、水產養殖、消閒、滅火）')" class="exam-blank bg-yellow-100 hover:bg-yellow-200 border-2 border-dashed border-purple-700 px-3 py-0.5 rounded text-purple-900 font-black">❓ 點擊看答案</button></p>
+                            <p>8. 【簡答 9%】甚麼是再生水？<button onclick="toggleExamBlank(this, '再生水來自城市排放的水，經過適當的處理，便能成為非飲用的水。')" class="exam-blank bg-yellow-100 hover:bg-yellow-200 border-2 border-dashed border-purple-700 px-3 py-0.5 rounded text-purple-900 font-black">❓ 點擊看答案</button></p>
+                        </div>
+                    </div>
+
+                    <!-- Part 3: Picture Judgments & Part 4/5: MC & T/F -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="bg-white p-4 pixel-box-sm text-sm font-bold space-y-2">
+                            <div class="text-purple-900 font-black text-base">三、看圖判斷題 & 七、看圖分類題 (節水)</div>
+                            <p>• <b>生物缺水會導致：</b> 🥀花朵枯萎 <button onclick="toggleExamBlank(this, '✔ 正確')" class="exam-blank bg-yellow-100 border border-purple-700 px-2 rounded">❓</button>、🐔雞隻渴死 <button onclick="toggleExamBlank(this, '✔ 正確')" class="exam-blank bg-yellow-100 border border-purple-700 px-2 rounded">❓</button>（🌬️颱風吹倒樹、🏚️地震塌屋都是 <button onclick="toggleExamBlank(this, '✘ 不正確')" class="exam-blank bg-yellow-100 border border-purple-700 px-2 rounded">❓</button>）。</p>
+                            <p>• <b>需要用水做的事：</b> 🚽沖廁 <button onclick="toggleExamBlank(this, '✔')" class="exam-blank bg-yellow-100 border border-purple-700 px-2 rounded">❓</button>、🚒消防滅火 <button onclick="toggleExamBlank(this, '✔')" class="exam-blank bg-yellow-100 border border-purple-700 px-2 rounded">❓</button>、⚙️推動水車 <button onclick="toggleExamBlank(this, '✔')" class="exam-blank bg-yellow-100 border border-purple-700 px-2 rounded">❓</button>（😴睡覺是 <button onclick="toggleExamBlank(this, '✘')" class="exam-blank bg-yellow-100 border border-purple-700 px-2 rounded">❓</button>）。</p>
+                            <p>• <b>水的用途：</b> 👨‍🌾澆水灌溉 <button onclick="toggleExamBlank(this, '✔')" class="exam-blank bg-yellow-100 border border-purple-700 px-2 rounded">❓</button>、🚿淋浴清潔 <button onclick="toggleExamBlank(this, '✔')" class="exam-blank bg-yellow-100 border border-purple-700 px-2 rounded">❓</button>、🍳煮食 <button onclick="toggleExamBlank(this, '✔')" class="exam-blank bg-yellow-100 border border-purple-700 px-2 rounded">❓</button>（🔥開電暖爐取暖是 <button onclick="toggleExamBlank(this, '✘')" class="exam-blank bg-yellow-100 border border-purple-700 px-2 rounded">❓</button>）。</p>
+                            <p>• <b>節約用水行為：</b> (A)洗米水澆花、(B)用漱口杯刷牙、(C)洗頭時關花灑 都是 <button onclick="toggleExamBlank(this, '節約用水 (A, B, C)')" class="exam-blank bg-yellow-100 border border-purple-700 px-2 rounded">❓</button>；(D)開水龍頭潑水玩耍是 <button onclick="toggleExamBlank(this, '不是節約用水 (D)')" class="exam-blank bg-yellow-100 border border-purple-700 px-2 rounded">❓</button>。</p>
+                        </div>
+
+                        <div class="bg-white p-4 pixel-box-sm text-sm font-bold space-y-2">
+                            <div class="text-rose-700 font-black text-base">四、選擇題 & 五、判斷題 & 六、配對題</div>
+                            <p>1. 哪項<b>不是</b>再生水的用途？ <button onclick="toggleExamBlank(this, '(A) 煮食')" class="exam-blank bg-yellow-100 border border-purple-700 px-2 rounded">❓</button></p>
+                            <p>2. 哪個洗澡方式能夠節約用水？ <button onclick="toggleExamBlank(this, '(D) 在花灑安裝節水器')" class="exam-blank bg-yellow-100 border border-purple-700 px-2 rounded">❓</button></p>
+                            <p>3. 哪個<b>不是</b>澳門的水塘和水庫？ <button onclick="toggleExamBlank(this, '(A) 城門水塘')" class="exam-blank bg-yellow-100 border border-purple-700 px-2 rounded">❓</button></p>
+                            <p>4. 西江水是澳門向哪個省政府購買？ <button onclick="toggleExamBlank(this, '(C) 廣東')" class="exam-blank bg-yellow-100 border border-purple-700 px-2 rounded">❓</button></p>
+                            <p>5. 混有沙泥的水經沉澱後會比較污濁？ <button onclick="toggleExamBlank(this, '✘ 不正確（會變清澈）')" class="exam-blank bg-yellow-100 border border-purple-700 px-2 rounded">❓</button></p>
+                            <p>6. 在食水中加入氟化物可以消毒？ <button onclick="toggleExamBlank(this, '✘ 不正確（氟化物是防蛀牙）')" class="exam-blank bg-yellow-100 border border-purple-700 px-2 rounded">❓</button></p>
+                            <p>7. 地方配對：水塘 <button onclick="toggleExamBlank(this, '(B) 收集雨水')" class="exam-blank bg-yellow-100 border border-purple-700 px-2 rounded">❓</button>｜水力發電廠 <button onclick="toggleExamBlank(this, '(A) 利用水流發電')" class="exam-blank bg-yellow-100 border border-purple-700 px-2 rounded">❓</button>｜食水處理廠 <button onclick="toggleExamBlank(this, '(C) 沉澱和消毒西江水')" class="exam-blank bg-yellow-100 border border-purple-700 px-2 rounded">❓</button>｜污水處理廠 <button onclick="toggleExamBlank(this, '(D) 淨化污水成再生水')" class="exam-blank bg-yellow-100 border border-purple-700 px-2 rounded">❓</button></p>
+                        </div>
+                    </div>
+
+                    <!-- Part 8: Bonus Clay Ball Drawing Simulation -->
+                    <div>
+                        <h4 class="font-black text-purple-900 text-base md:text-lg mb-2">八、附加繪圖題互動模擬：如果把泥膠球放在水中，它會怎樣？(5%)</h4>
+                        <div class="bg-white p-4 pixel-box-sm flex flex-col md:flex-row items-center justify-around gap-6">
+                            <div class="max-w-md space-y-2">
+                                <p class="font-bold text-slate-700 text-sm md:text-base">
+                                    📌 <b>試卷原題：</b>「如果我們把<b>泥膠球</b>放在水中，它會怎樣？在下圖畫出泥膠球的位置。」
+                                </p>
+                                <p class="text-xs md:text-sm text-slate-600 font-bold">
+                                    👉 請請一位同學出來點擊右邊水杯的<b>「水面」</b>、<b>「水中間」</b>或<b>「水杯底部」</b>！
+                                </p>
+                                <div id="clayExamFeedback" class="p-3 rounded-lg bg-slate-100 font-black text-slate-700 text-sm">
+                                    👆 請點擊右側水杯中的正確位置！
+                                </div>
+                            </div>
+
+                            <!-- Interactive Water Cup SVG -->
+                            <div class="flex flex-col items-center">
+                                <svg id="examCupSvg" width="210" height="220" viewBox="0 0 220 240" class="cursor-pointer select-none">
+                                    <ellipse cx="110" cy="35" rx="70" ry="16" fill="#e0f2fe" stroke="#1e293b" stroke-width="4"/>
+                                    <path d="M40 35 L55 205 A55 14 0 0 0 165 205 L180 35" fill="#bae6fd" fill-opacity="0.6" stroke="#1e293b" stroke-width="4"/>
+                                    <ellipse cx="110" cy="48" rx="66" ry="12" fill="#38bdf8" fill-opacity="0.4" stroke="#0284c7" stroke-width="2"/>
+                                    
+                                    <!-- Top -->
+                                    <g onclick="checkExamClayPosition('top')">
+                                        <rect x="55" y="32" width="110" height="45" fill="transparent"/>
+                                        <circle id="examClayTop" cx="110" cy="52" r="20" fill="#94a3b8" stroke="#1e293b" stroke-width="3" stroke-dasharray="4 4" opacity="0.35"/>
+                                        <text x="110" y="57" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e293b">點擊水面</text>
+                                    </g>
+
+                                    <!-- Middle -->
+                                    <g onclick="checkExamClayPosition('middle')">
+                                        <rect x="55" y="85" width="110" height="55" fill="transparent"/>
+                                        <circle id="examClayMid" cx="110" cy="115" r="20" fill="#94a3b8" stroke="#1e293b" stroke-width="3" stroke-dasharray="4 4" opacity="0.35"/>
+                                        <text x="110" y="120" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e293b">點擊水中</text>
+                                    </g>
+
+                                    <!-- Bottom (CORRECT) -->
+                                    <g onclick="checkExamClayPosition('bottom')">
+                                        <rect x="55" y="145" width="110" height="65" fill="transparent"/>
+                                        <circle id="examClayBot" cx="110" cy="182" r="22" fill="#94a3b8" stroke="#1e293b" stroke-width="3" stroke-dasharray="4 4" opacity="0.45"/>
+                                        <text id="examClayBotText" x="110" y="187" text-anchor="middle" font-size="11" font-weight="bold" fill="#1e293b">點擊杯底</text>
+                                    </g>
+                                </svg>
+                                <span class="text-xs font-bold text-slate-500 mt-1">（考試時記得把實心圓形泥膠球畫在<b>水杯底部</b>！）</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* =========================================================================
+           1. SANRIO PIXEL ART CHARACTERS (Boys & Girls Favorites)
+           ========================================================================= */
+        const SANRIO_CHARS = [
+            {
+                id: 'kuromi',
+                name: '酷洛米組',
+                enName: 'Kuromi',
+                color: '#a855f7',
+                bgLight: '#f3e8ff',
+                borderHex: '#7e22ce',
+                tag: '酷帥人氣王',
+                svg: `<svg viewBox="0 0 16 16" class="w-full h-full pixel-art">
+                    <path fill="#2d1b4e" d="M2 2h3v3H2zM11 2h3v3h-3zM3 5h10v7H3z"/>
+                    <path fill="#f472b6" d="M7 5h2v2H7z"/>
+                    <path fill="#ffffff" d="M5 8h6v4H5z"/>
+                    <path fill="#2d1b4e" d="M5 9h2v2H5zM9 9h2v2H9z"/>
+                    <path fill="#f472b6" d="M7 10h2v1H7z"/>
+                </svg>`
+            },
+            {
+                id: 'cinnamoroll',
+                name: '大耳狗組',
+                enName: 'Cinnamoroll',
+                color: '#0ea5e9',
+                bgLight: '#e0f2fe',
+                borderHex: '#0369a1',
+                tag: '雲朵小王子',
+                svg: `<svg viewBox="0 0 16 16" class="w-full h-full pixel-art">
+                    <path fill="#38bdf8" d="M1 6h3v5H1zM12 6h3v5h-3zM4 4h8v8H4z"/>
+                    <path fill="#ffffff" d="M2 7h2v3H2zM12 7h2v3h-2zM5 5h6v6H5z"/>
+                    <path fill="#0284c7" d="M6 7h1v2H6zM9 7h1v2H9z"/>
+                    <path fill="#f472b6" d="M5 9h1v1H5zM10 9h1v1h-1zM7 8h2v1H7z"/>
+                </svg>`
+            },
+            {
+                id: 'badtzmaru',
+                name: '酷企鵝組',
+                enName: 'Badtz-Maru',
+                color: '#334155',
+                bgLight: '#f1f5f9',
+                borderHex: '#0f172a',
+                tag: '男生最愛',
+                svg: `<svg viewBox="0 0 16 16" class="w-full h-full pixel-art">
+                    <path fill="#1e293b" d="M4 2h2v2H4zM7 1h2v3H7zM10 2h2v2h-2zM3 4h10v9H3z"/>
+                    <path fill="#ffffff" d="M5 6h2v2H5zM9 6h2v2H9zM5 10h6v3H5z"/>
+                    <path fill="#0f172a" d="M6 7h1v1H6zM9 7h1v1H9z"/>
+                    <path fill="#facc15" d="M6 8h4v2H6z"/>
+                </svg>`
+            },
+            {
+                id: 'hellokitty',
+                name: '凱蒂貓組',
+                enName: 'Hello Kitty',
+                color: '#ec4899',
+                bgLight: '#fce7f3',
+                borderHex: '#be185d',
+                tag: '經典可愛王',
+                svg: `<svg viewBox="0 0 16 16" class="w-full h-full pixel-art">
+                    <path fill="#1e293b" d="M3 3h3v2H3zM10 3h3v2h-3zM3 5h10v8H3z"/>
+                    <path fill="#ffffff" d="M4 4h2v1H4zM10 4h2v1h-2zM4 5h8v7H4z"/>
+                    <path fill="#ef4444" d="M9 3h4v3H9z"/>
+                    <path fill="#1e293b" d="M5 8h1v2H5zM10 8h1v2h-1z"/>
+                    <path fill="#facc15" d="M7 9h2v1H7z"/>
+                </svg>`
+            },
+            {
+                id: 'pompompurin',
+                name: '布丁狗組',
+                enName: 'Pompompurin',
+                color: '#eab308',
+                bgLight: '#fef9c3',
+                borderHex: '#a16207',
+                tag: '活力元氣王',
+                svg: `<svg viewBox="0 0 16 16" class="w-full h-full pixel-art">
+                    <path fill="#78350f" d="M5 2h6v3H5z"/>
+                    <path fill="#fde047" d="M2 5h2v5H2zM12 5h2v5h-2zM4 5h8v8H4z"/>
+                    <path fill="#78350f" d="M6 7h1v2H6zM9 7h1v2H9zM7 9h2v1H7z"/>
+                    <path fill="#f472b6" d="M5 9h1v1H5zM10 9h1v1h-1z"/>
+                </svg>`
+            },
+            {
+                id: 'keroppi',
+                name: '大眼蛙組',
+                enName: 'Keroppi',
+                color: '#22c55e',
+                bgLight: '#dcfce7',
+                borderHex: '#15803d',
+                tag: '游泳小健將',
+                svg: `<svg viewBox="0 0 16 16" class="w-full h-full pixel-art">
+                    <path fill="#ffffff" d="M4 2h3v4H4zM9 2h3v4H9z"/>
+                    <path fill="#1e293b" d="M5 3h2v2H5zM9 3h2v2H9z"/>
+                    <path fill="#4ade80" d="M3 6h10v7H3z"/>
+                    <path fill="#f472b6" d="M4 8h2v1H4zM10 8h2v1h-2z"/>
+                    <path fill="#ef4444" d="M7 10h2v2H7z"/>
+                </svg>`
+            }
+        ];
+
+        /* =========================================================================
+           2. 20-TILE MONOPOLY BOARD DEFINITION
+           ========================================================================= */
+        const BOARD_TILES = [
+            { id: 0,  r: 1, c: 1, type: 'start',    name: '起點 GO',     icon: '🚩', price: 0,   toll: 0,   desc: '經過或停留+$300', color: 'bg-rose-400' },
+            { id: 1,  r: 1, c: 2, type: 'property', name: '西江水源地',   icon: '🌊', price: 200, toll: 100, desc: '買地$200',       color: 'bg-sky-400' },
+            { id: 2,  r: 1, c: 3, type: 'property', name: '西江輸水管',   icon: '🚰', price: 220, toll: 110, desc: '買地$220',       color: 'bg-sky-400' },
+            { id: 3,  r: 1, c: 4, type: 'chance',   name: '三麗鷗機會',   icon: '❓', price: 0,   toll: 0,   desc: '答題抽機會卡',   color: 'bg-amber-400' },
+            { id: 4,  r: 1, c: 5, type: 'property', name: '青洲食水廠',   icon: '🏭', price: 260, toll: 130, desc: '買地$260',       color: 'bg-cyan-500' },
+            { id: 5,  r: 1, c: 6, type: 'minigame', name: '關水龍頭挑戰', icon: '🎮', price: 0,   toll: 0,   desc: '答題玩小遊戲',   color: 'bg-emerald-500' },
+            { id: 6,  r: 2, c: 6, type: 'property', name: '混凝沉澱池',   icon: '🧪', price: 280, toll: 140, desc: '買地$280',       color: 'bg-indigo-400' },
+            { id: 7,  r: 3, c: 6, type: 'property', name: '過濾消毒室',   icon: '✨', price: 300, toll: 150, desc: '買地$300',       color: 'bg-indigo-400' },
+            { id: 8,  r: 4, c: 6, type: 'quiz',     name: '有獎常識問答', icon: '🧠', price: 0,   toll: 0,   desc: '答對獎$350',     color: 'bg-purple-500' },
+            { id: 9,  r: 5, c: 6, type: 'property', name: '澳門大水塘',   icon: '🏞️', price: 320, toll: 160, desc: '買地$320',       color: 'bg-teal-500' },
+            { id: 10, r: 6, c: 6, type: 'minigame', name: '泥膠浮沉實驗', icon: '🥣', price: 0,   toll: 0,   desc: '附加題實驗室',   color: 'bg-emerald-500' },
+            { id: 11, r: 6, c: 5, type: 'property', name: '九澳水庫',     icon: '⛰️', price: 340, toll: 170, desc: '買地$340',       color: 'bg-teal-500' },
+            { id: 12, r: 6, c: 4, type: 'property', name: '黑沙水庫',     icon: '🌲', price: 360, toll: 180, desc: '買地$360',       color: 'bg-teal-500' },
+            { id: 13, r: 6, c: 3, type: 'chance',   name: '水精靈命運',   icon: '🌈', price: 0,   toll: 0,   desc: '答題抽命運卡',   color: 'bg-amber-400' },
+            { id: 14, r: 6, c: 2, type: 'property', name: '水力發電廠',   icon: '⚡', price: 380, toll: 190, desc: '買地$380',       color: 'bg-blue-500' },
+            { id: 15, r: 6, c: 1, type: 'minigame', name: '幸運水滴轉盤', icon: '🎡', price: 0,   toll: 0,   desc: '答題轉大獎',     color: 'bg-emerald-500' },
+            { id: 16, r: 5, c: 1, type: 'property', name: '污水處理廠',   icon: '🔄', price: 400, toll: 200, desc: '買地$400',       color: 'bg-pink-500' },
+            { id: 17, r: 4, c: 1, type: 'property', name: '再生水中心',   icon: '♻️', price: 420, toll: 210, desc: '買地$420',       color: 'bg-pink-500' },
+            { id: 18, r: 3, c: 1, type: 'quiz',     name: '滿分超級擂台', icon: '🏆', price: 0,   toll: 0,   desc: '答對獎$400',     color: 'bg-purple-500' },
+            { id: 19, r: 2, c: 1, type: 'property', name: '三麗鷗節水園', icon: '🎡', price: 480, toll: 240, desc: '地王$480',       color: 'bg-rose-500' }
+        ];
+
+        /* =========================================================================
+           3. COMPLETE 100-QUESTION BANK (Covers Test Paper 100% + Extended P3 Water)
+           Diff: 1 = ⭐容易, 2 = ⭐⭐中等, 3 = ⭐⭐⭐困難
+           ========================================================================= */
+        const QUESTION_BANK = [
+            // --- 1-20: 試卷核心填充題、簡答題、選擇題、判斷題原題 ---
+            { diff: 1, graphic: '🏞️⬇️💧', q: '【測驗填充題】水會往哪個方向流動？', opts: ['⬆️ 高處', '⬇️ 低處', '⬅️ 左邊', '🔄 四面八方往上'], ans: 1, hint: '想想瀑布和雨水，都是從山頂流向哪裡？', exp: '水受到地球引力影響，一定會往「低處」流動。' },
+            { diff: 1, graphic: '🥛👃💧', q: '【測驗填充題】純淨的水沒有顏色，沒有味道，也沒有甚麼？', opts: ['🌬️ 氣味', '⚖️ 重量', '💧 水分', '🌊 流動性'], ans: 0, hint: '用鼻子聞一聞白開水，會聞到香味或臭味嗎？', exp: '水沒有顏色，沒有「氣味」，沒有味道，也沒有固定形狀。' },
+            { diff: 2, graphic: '🏞️🚰🇲🇴', q: '【測驗填充題】哪一條江的水輸入澳門的食水處理廠後，經過處理成為食水？', opts: ['🐉 長江', '🏞️ 西江', '🌊 黃河', '🚤 香江'], ans: 1, hint: '澳門主要向廣東省購買哪一條江的淡水？名字有一個「西」字。', exp: '「西江」水輸入澳門的食水處理廠後，經混凝、沉澱、過濾和消毒成為食水。' },
+            { diff: 1, graphic: '🌱🐶💧', q: '【測驗填充題】無論動物還是植物都需要水才能生存，水是維持甚麼的要素？', opts: ['🎮 遊戲', '❤️ 生命', '💎 財富', '📱 電力'], ans: 1, hint: '沒有水，動植物都會死亡，所以水是維持「生…」的要素。', exp: '水是維持「生命」的要素。' },
+            { diff: 1, graphic: '🚒🔥💦', q: '【測驗填充題】當火災發生時，消防員會用水來做甚麼？', opts: ['🚒 滅火', '🌱 澆花', '🏊 游泳', '🍳 煮食'], ans: 0, hint: '發生大火時，消防員拿水喉射水是為了把火撲滅。', exp: '當火災發生時，消防員會用水來「滅火」。' },
+            { diff: 2, graphic: '🚢🌊⚓', q: '【測驗填充題】水的甚麼特性可以讓船隻在水面航行而不會沉下去？', opts: ['🌊 浮力', '🧲 磁力', '⚡ 電力', '🌬️ 風力'], ans: 0, hint: '把船托在水面上的力量叫做「…力」？', exp: '水的「浮力」可以讓船隻在水面航行。' },
+            { diff: 2, graphic: '♻️🚽🌳', q: '【測驗選擇題】以下哪項「不是」再生水的用途？', opts: ['🍳 煮食', '🌷 美化環境', '🌾 灌溉植物', '🚽 沖廁'], ans: 0, hint: '再生水是非飲用水，不能吃進肚子裡喔！', exp: '再生水是「非飲用水」，不能用來煮食或飲用，但可用於沖廁、灌溉和美化環境。' },
+            { diff: 1, graphic: '🚿💧👍', q: '【測驗選擇題】以下哪個洗澡方式能夠節約用水？', opts: ['🚰 長開水龍頭洗澡', '🛁 在浴缸浸浴', '🌧️ 用頂噴式大型花灑', '🚿 在花灑安裝節水器'], ans: 3, hint: '哪種設備可以幫忙減少花灑流出的水量？', exp: '在花灑安裝「節水器」並以淋浴代替浸浴，最能節約用水。' },
+            { diff: 2, graphic: '🏞️🇲🇴❓', q: '【測驗選擇題】以下哪個「不是」澳門的水塘和水庫？', opts: ['🐒 城門水塘', '⛰️ 九澳水庫', '🌊 大水塘', '🌲 黑沙水庫'], ans: 0, hint: '大水塘、九澳水庫、黑沙水庫都在澳門；哪一個是在香港新界的？', exp: '「城門水塘」位於香港，不是澳門的水塘。' },
+            { diff: 2, graphic: '🤝🏞️🇲🇴', q: '【測驗選擇題】西江水是澳門向中國以下哪個省政府購買的？', opts: ['⛰️ 山西省', '🏺 江西省', '🦁 廣東省', '🐪 陝西省'], ans: 2, hint: '澳門毗鄰珠海，珠海屬於哪一個省份？', exp: '澳門向中國「廣東省」政府購買西江水。' },
+            { diff: 1, graphic: '🗺️🇲🇴💧', q: '【測驗判斷題】「澳門沒有大河流和湖泊，淡水資源缺乏。」這句話正確嗎？', opts: ['⭕ 正確', '❌ 不正確', '🤷 一半對', '🌧️ 只有冬天缺水'], ans: 0, hint: '澳門面積小，有沒有長江那樣的大河流？沒有喔！', exp: '正確！澳門沒有大河流和湖泊，淡水資源十分缺乏。' },
+            { diff: 3, graphic: '🥛⏳🪨', q: '【測驗判斷陷阱題】「混有沙泥的水，經過沉澱後，會比較污濁。」這句話正確嗎？', opts: ['❌ 不正確（會變清澈）', '⭕ 正確（會更污濁）', '🪨 沙泥會浮上水面', '🌈 水會變成紅色'], ans: 0, hint: '沙泥沉到杯底後，上面的水會變得更清澈還是更污濁？小心題目陷阱！', exp: '不正確！混有沙泥的水經過沉澱後，沙泥沉底，上層的水會比較「清澈」。' },
+            { diff: 3, graphic: '🦷🚰🧪', q: '【測驗判斷陷阱題】「在食水中加入氟化物可以消毒。」這句話正確嗎？', opts: ['❌ 不正確（氟化物是防蛀牙）', '⭕ 正確（用來殺菌消毒）', '🍬 用來令水變甜', '❄️ 用來令水結冰'], ans: 0, hint: '食水加「氯氣」才是消毒；加「氟化物」是為了保護牙齒防止蛀牙！', exp: '不正確！加入氟化物是為了保護牙齒（防止蛀牙），加入「氯氣」才是消毒。' },
+            { diff: 1, graphic: '🚿🛁💧', q: '【測驗判斷題】「我們以淋浴代替浸浴，能夠節約用水。」這句話正確嗎？', opts: ['⭕ 正確', '❌ 不正確', '🛁 浸浴更省水', '🚿 兩樣一樣多水'], ans: 0, hint: '放滿一整個浴缸的水多，還是快速沖涼淋浴用的水少？', exp: '正確！淋浴比浴缸浸浴節省大量食水。' },
+            { diff: 1, graphic: '🏢🚰🔧', q: '【測驗判斷題】「工商業機構為了節約用水，可在洗手間水龍頭安裝節水器。」正確嗎？', opts: ['⭕ 正確', '❌ 不正確', '🏢 只可以拆掉水龍頭', '💦 節水器會浪費水'], ans: 0, hint: '安裝節水器可以減慢水流、節約用水。', exp: '正確！安裝節水器能有效減少浪費食水。' },
+            { diff: 3, graphic: '♻️🏙️💧', q: '【測驗簡答題】甚麼是「再生水」？', opts: ['♻️ 城市排放的水經適當處理後，成為非飲用的水', '🌧️ 直接從天空接住的雨水，可直接飲用', '🌊 直接從大海抽上來沒有處理的海水', '🧊 雪櫃裡融化出來的冰水'], ans: 0, hint: '試卷標準答案：來自城市排放的水，經過適當處理，成為非飲用的水。', exp: '再生水來自城市排放的水（污水），經過適當的處理，便能成為非飲用的水。' },
+            { diff: 2, graphic: '🚢⚡🌾', q: '【測驗簡答題】以下哪兩項是試卷簡答題標準答案提到的「水的用途」？', opts: ['🚢 運輸 和 ⚡ 發電', '🔥 燃燒 和 🪨 造石頭', '📱 上網 和 📺 看電視', '😴 睡覺 和 🏃 跑步'], ans: 0, hint: '船在水上走是「運…」，水力發電廠是「發…」。', exp: '水的重要用途包括：1. 運輸、2. 發電（此外還有灌溉、水產養殖、消閒、滅火等）。' },
+            { diff: 2, graphic: '🥣⚪⬇️', q: '【測驗附加繪圖題】如果我們把實心的「泥膠球」放在水中，它會怎樣？', opts: ['⬇️ 沉到水杯最底部', '⬆️ 浮在水面上', '↔️ 停在水中間不動', '💨 馬上溶解消失'], ans: 0, hint: '實心泥膠球比同體積的水重，放進水杯裡會畫在哪個位置？', exp: '實心泥膠球會「沉到水杯底部」！考試繪圖題記得把圓球畫在杯底喔！' },
+            { diff: 3, graphic: '⛵🥣🌊', q: '【延伸思考題】如果把沉底的泥膠球捏成「小船的形狀（空心）」再放進水裡，會怎樣？', opts: ['⛵ 可以浮在水面上', '⬇️ 依然沉在杯底', '💥 水杯會破掉', '🧊 水會結冰'], ans: 0, hint: '捏成船形後排開的水變多了，水的浮力就能托起它！', exp: '把泥膠捏成空心船形，受到的浮力增大，就能浮在水面上！' },
+            { diff: 1, graphic: '🥀🐔☀️', q: '【測驗看圖判斷題】生物缺水會導致以下哪些情況？', opts: ['🥀 植物枯萎、動物渴死', '🌪️ 吹起大風把樹吹彎', '🏚️ 發生地震令房屋倒塌', '⚡ 天空打雷閃電'], ans: 0, hint: '試卷第一組圖：向日葵垂頭枯萎、小雞倒下；颱風和地震跟生物缺水無關喔！', exp: '生物缺水會導致植物枯萎、動物死亡；颱風和地震屬於自然現象/災害，不是生物缺水造成的。' },
+
+            // --- 21-40: 試卷看圖題、配對題、分類題細分 ---
+            { diff: 1, graphic: '🌪️🌳🛵', q: '【測驗看圖判斷題】試卷圖中「刮大風吹歪樹木和電單車」，是不是生物缺水導致的？', opts: ['❌ 不是（這是強風/颱風）', '⭕ 是生物缺水導致的', '🌱 是植物太渴了', '🐔 是小雞吹出來的'], ans: 0, hint: '刮大風是天氣現象，不是因為動物植物沒水喝喔！', exp: '刮大風與生物缺水無關，所以在括號內應加 ✘。' },
+            { diff: 1, graphic: '🏚️💥🪨', q: '【測驗看圖判斷題】試卷圖中「房屋倒塌損毀」，是不是生物缺水導致的？', opts: ['❌ 不是（這是地震災害）', '⭕ 是生物缺水導致的', '💧 是水太多導致的', '🌻 是花朵枯萎導致的'], ans: 0, hint: '房子倒塌是地震等災害，跟生物缺水沒有關係。', exp: '房屋倒塌不是生物缺水導致的情況，括號內應加 ✘。' },
+            { diff: 1, graphic: '🚽🚒⚙️😴', q: '【測驗看圖判斷題】以下四幅試卷圖中，哪一項「不需要」用水來做？', opts: ['😴 在床上睡覺', '🚽 按水箱沖廁', '🚒 消防員射水救火', '⚙️ 水流推動水車'], ans: 0, hint: '沖廁、救火、推動水車都要用水；躺在床上蓋被子睡覺需要用水嗎？', exp: '睡覺不需要用水，其餘三項（沖廁、救火、水車）都需要用水。' },
+            { diff: 1, graphic: '👨‍🌾🚿🍳🔥', q: '【測驗看圖判斷題】以下四幅試卷圖中，哪一項「不是」水的用途？', opts: ['🔥 坐在沙發旁開電暖爐取暖', '👨‍🌾 農夫挑水澆灌農作物', '🚿 用花灑淋浴清潔身體', '🍳 媽媽在廚房用水煮食'], ans: 0, hint: '電暖爐是用電發熱取暖的，不是水的用途喔！', exp: '開電暖爐取暖不是水的用途，所以在括號內應加 ✘。' },
+            { diff: 2, graphic: '🚣‍♂️🐟🕸️', q: '【測驗看圖配對題】試卷圖中「漁夫在船上撒網養魚捕魚」，配對水的哪種用途？', opts: ['🐟 水產養殖', '🌾 灌溉', '🏊 消閒', '⚡ 發電'], ans: 0, hint: '魚、蝦等水產在水中生活和繁殖，這叫做「水產…」？', exp: '利用水域養殖或捕撈魚類，屬於「水產養殖」。' },
+            { diff: 1, graphic: '🏊‍♂️🥽💦', q: '【測驗看圖配對題】試卷圖中「小朋友戴泳鏡在泳池游泳」，配對水的哪種用途？', opts: ['🏊 消閒', '⚡ 發電', '🌾 灌溉', '🐟 水產養殖'], ans: 0, hint: '游泳、划艇等水上康樂活動，在課本上稱為「消…」活動。', exp: '在泳池游泳屬於「消閒」用途。' },
+            { diff: 2, graphic: '🏞️⚡🏗️', q: '【測驗看圖配對題】試卷圖中「大壩洩洪利用強大水流轉動渦輪」，配對水的哪種用途？', opts: ['⚡ 發電', '🏊 消閒', '🌾 灌溉', '🐟 水產養殖'], ans: 0, hint: '水庫大壩的水沖下來可以產生電力！', exp: '水力發電站大壩屬於水的「發電」用途。' },
+            { diff: 1, graphic: '👨‍🌾🪣🌱', q: '【測驗看圖配對題】試卷圖中「農夫戴斗笠用澆水壺澆菜」，配對水的哪種用途？', opts: ['🌾 灌溉', '⚡ 發電', '🏊 消閒', '🐟 水產養殖'], ans: 0, hint: '給農田裡的蔬菜澆水，課本專有名詞叫做「灌…」。', exp: '農夫給農作物澆水屬於「灌溉」用途。' },
+            { diff: 2, graphic: '🫗🟦⚪', q: '【測驗看圖配對題】把水壺的水倒進「方形杯」變成方形，倒進「圓形杯」變成圓形，說明水有甚麼特性？', opts: ['🫗 沒有固定形狀', '👅 沒有味道', '🚢 有浮力', '⬇️ 往低處流動'], ans: 0, hint: '容器是甚麼形狀，水就變成甚麼形狀！', exp: '水倒入不同形狀的杯子會改變形狀，說明水「沒有固定形狀」。' },
+            { diff: 2, graphic: '🧒🚢🛁', q: '【測驗看圖配對題】小朋友把玩具船放進水盆裡，玩具船浮在水面，說明水有甚麼特性？', opts: ['🚢 有浮力', '🫗 沒有固定形狀', '👅 沒有味道', '⬇️ 往低處流動'], ans: 0, hint: '玩具船不會沉下去，是因為水有甚麼力？', exp: '玩具船能浮在水面，說明水「有浮力」。' },
+            { diff: 1, graphic: '🏞️⬇️🌊', q: '【測驗看圖配對題】河水從高山上像瀑布一樣往下沖，說明水有甚麼特性？', opts: ['⬇️ 往低處流動', '🚢 有浮力', '🫗 沒有固定形狀', '👅 沒有味道'], ans: 0, hint: '瀑布的水是往上流還是往下流？', exp: '瀑布從高處流下，說明水「往低處流動」。' },
+            { diff: 3, graphic: '🖼️👅❓', q: '【測驗看圖配對題】在「把水的不同特性配對」一題中，只有3幅圖（倒水、玩具船、瀑布），那麼「(2) 沒有味道」一欄應該填甚麼？', opts: ['✖️ 加 ✘（不適用，因為沒有對應的圖）', '🅰️ 填 A', '🅱️ 填 B', '🆎 填 C'], ans: 0, hint: '題目指示：「並在不適用的（  ）內加 ✘」。3幅圖都沒有人在喝水試味道喔！', exp: '因為沒有對應「沒有味道」的圖片，所以括號內要加「✘」！這題很多同學會漏看題目指示！' },
+            { diff: 2, graphic: '🏞️🌧️💧', q: '【測驗配對題】「水塘」的主要功能是甚麼？', opts: ['🌧️ 收集雨水（儲存淡水）', '⚡ 利用水流發電', '🧪 沉澱和消毒西江水', '♻️ 淨化污水成再生水'], ans: 0, hint: '下雨時，水塘可以把天上的水儲起來。', exp: '水塘的功能是「收集雨水」（配對選 B）。' },
+            { diff: 2, graphic: '⚡🌊🏭', q: '【測驗配對題】「水力發電廠」的主要功能是甚麼？', opts: ['⚡ 利用水流發電', '🌧️ 收集雨水', '🧪 沉澱和消毒西江水', '♻️ 淨化污水成再生水'], ans: 0, hint: '名字已經有「發電」兩個字啦！', exp: '水力發電廠的功能是「利用水流發電」（配對選 A）。' },
+            { diff: 2, graphic: '🏭🧪🚰', q: '【測驗配對題】「食水處理廠」的主要功能是甚麼？', opts: ['🧪 沉澱和消毒西江水', '🌧️ 收集雨水', '⚡ 利用水流發電', '♻️ 淨化污水成再生水'], ans: 0, hint: '把西江原水變成我們可以喝的食水的地方。', exp: '食水處理廠的功能是「沉澱和消毒西江水」（配對選 C）。' },
+            { diff: 2, graphic: '♻️🚽🏭', q: '【測驗配對題】「污水處理廠」的主要功能是甚麼？', opts: ['♻️ 淨化污水成再生水', '🌧️ 收集雨水', '⚡ 利用水流發電', '🧪 沉澱和消毒西江水'], ans: 0, hint: '把城市排出的髒水（污水）變乾淨成為再生水的地方。', exp: '污水處理廠的功能是「淨化污水成再生水」（配對選 D）。' },
+            { diff: 1, graphic: '🍚🥣🌱', q: '【測驗看圖分類題】媽媽把「洗米水」留起來澆花，這是節約用水的行為嗎？', opts: ['⭕ 是節約用水的行為', '❌ 不是節約用水的行為', '🥀 會令花朵枯萎', '🗑️ 應該直接倒掉'], ans: 0, hint: '一水多用，把洗米水用來澆盆栽非常環保！', exp: '用洗米水澆花屬於「節約用水的行為」（圖 A）。' },
+            { diff: 1, graphic: '🪥🥛🚰', q: '【測驗看圖分類題】刷牙時關掉水龍頭，改用「漱口杯」裝水漱口，這是節約用水嗎？', opts: ['⭕ 是節約用水的行為', '❌ 不是節約用水的行為', '🚰 長開水龍頭更好', '🦷 不用刷牙最省水'], ans: 0, hint: '用杯子裝水刷牙，比長開水龍頭省下很多水！', exp: '用漱口杯刷牙屬於「節約用水的行為」（圖 B）。' },
+            { diff: 1, graphic: '🧴🚿✋', q: '【測驗看圖分類題】洗頭搓泡泡時，順手把花灑關上，這是節約用水的行為嗎？', opts: ['⭕ 是節約用水的行為', '❌ 不是節約用水的行為', '🚿 應該一直開著花灑', '🛁 應該改用大浴缸'], ans: 0, hint: '抹肥皂或搓洗頭水時暫時關水，就不會白白流走食水。', exp: '洗頭搓泡泡時關掉花灑屬於「節約用水的行為」（圖 C）。' },
+            { diff: 1, graphic: '👦💦👦', q: '【測驗看圖分類題】兩個小朋友在洗手間開大水龍頭，互相潑水玩耍，這是甚麼行為？', opts: ['❌ 不是節約用水的行為（浪費水）', '⭕ 是節約用水的行為', '🏆 模範環保行為', '🧹 幫忙清潔洗手間'], ans: 0, hint: '開著水龍頭玩水會浪費大量珍貴食水，而且地板濕滑容易跌倒！', exp: '開水龍頭潑水玩耍「不是節約用水的行為」（圖 D），也是沒有珍惜水資源的表現。' },
+
+            // --- 41-70: 深入溫習：食水處理4步驟、澳門水資源、水的三態與特性 ---
+            { diff: 3, graphic: '🏭1️⃣2️⃣3️⃣4️⃣', q: '西江水輸入澳門食水處理廠後，正確的「四個處理程序」順序是怎樣的？', opts: ['1.混凝 ➔ 2.沉澱 ➔ 3.過濾 ➔ 4.消毒', '1.消毒 ➔ 2.過濾 ➔ 3.沉澱 ➔ 4.混凝', '1.過濾 ➔ 2.混凝 ➔ 3.消毒 ➔ 4.沉澱', '1.沉澱 ➔ 2.消毒 ➔ 3.混凝 ➔ 4.過濾'], ans: 0, hint: '先加混凝劑（混凝），讓大顆粒沉底（沉澱），再穿過沙層（過濾），最後殺菌（消毒）。', exp: '食水處理四部曲：混凝 ➔ 沉澱 ➔ 過濾 ➔ 消毒。' },
+            { diff: 2, graphic: '🧪🪨⬇️', q: '在食水處理程序中，加入混凝劑讓水中的細小雜質凝聚成大顆粒，這個步驟叫甚麼？', opts: ['🧪 混凝', '⏳ 沉澱', '🧽 過濾', '✨ 消毒'], ans: 0, hint: '把細小雜質「混」合「凝」聚在一起。', exp: '這個步驟稱為「混凝」。' },
+            { diff: 2, graphic: '⏳🪣⬇️', q: '在混凝之後，讓凝結成團的較重泥沙雜質慢慢沉到池底，這個步驟叫甚麼？', opts: ['⏳ 沉澱', '🧪 混凝', '🧽 過濾', '✨ 消毒'], ans: 0, hint: '泥沙往下「沉」到池底。', exp: '讓泥沙雜質沉到池底的步驟稱為「沉澱」。' },
+            { diff: 2, graphic: '🧽🪨💧', q: '沉澱後的水流過砂石層和濾水層，把細小的懸浮物隔走，這個步驟叫甚麼？', opts: ['🧽 過濾', '🧪 混凝', '⏳ 沉澱', '✨ 消毒'], ans: 0, hint: '好像濾水器一樣把雜質隔走，叫做「過…」。', exp: '通過砂石層隔走細小雜質的步驟稱為「過濾」。' },
+            { diff: 2, graphic: '🦠✨🚰', q: '食水處理的最後一步，加入氯氣殺死水中的細菌和微生物，這個步驟叫甚麼？', opts: ['✨ 消毒', '🧪 混凝', '⏳ 沉澱', '🦷 加氟'], ans: 0, hint: '消滅水中的細菌病毒，確保衛生安全。', exp: '殺滅水中細菌的程序稱為「消毒」。' },
+            { diff: 2, graphic: '🚰🔥🦠', q: '雖然自來水在食水處理廠已經消毒，但我們在家裡飲用前，最好先怎樣做才最安全衛生？', opts: ['🔥 把水煮沸（煲滾）才喝', '🚰 直接對著水龍頭喝生水', '🧊 加冰塊直接喝', '🧂 加鹽巴直接喝'], ans: 0, hint: '輸水管道可能會有雜質，把水煲滾至100度最安全！', exp: '自來水應先「煮沸」才飲用，以確保殺死所有細菌。' },
+            { diff: 2, graphic: '🇲🇴🏞️📍', q: '澳門最大的水塘，位於澳門半島新口岸漁人碼頭附近，它的名字是甚麼？', opts: ['🌊 大水塘', '⛰️ 九澳水庫', '🌲 黑沙水庫', '🐒 城門水塘'], ans: 0, hint: '名字非常簡單直接，只有三個字：「…水塘」。', exp: '位於澳門半島的是「大水塘」。' },
+            { diff: 2, graphic: '🏝️⛰️💧', q: '澳門路環島有兩個著名的水庫，分別是「九澳水庫」和哪一個水庫？', opts: ['🌲 黑沙水庫', '🌊 大水塘', '🐒 城門水塘', '🌸 東涌水庫'], ans: 0, hint: '路環有一個很有名的沙灘，沙子是黑色的，旁邊的水庫就叫甚麼水庫？', exp: '路環的兩個水庫是「九澳水庫」和「黑沙水庫」。' },
+            { diff: 2, graphic: '🌊🧂🚰', q: '地球表面雖然有很多海水，但為甚麼我們不能直接喝海水解渴？', opts: ['🧂 海水又鹹又苦，含有大量鹽分', '🐟 海水裡有太多魚', '🔵 海水是深藍色的', '❄️ 海水太冰冷了'], ans: 0, hint: '海水是鹹水還是淡水？', exp: '海水是鹹水，含有大量鹽分，人類需要的是「淡水」。' },
+            { diff: 3, graphic: '❄️🌊🧂', q: '澳門在冬春季節（旱季）時，西江水位下降，海水容易倒灌令水質變鹹，這種現象叫甚麼？', opts: ['🌊 鹹潮', '🌪️ 颱風', '🌧️ 暴雨', '❄️ 寒潮'], ans: 0, hint: '海水倒灌令河水變「鹹」的「潮」汐現象。', exp: '這種現象稱為「鹹潮」，因此廣東與澳門修建了上游水庫群保障供水。' },
+            { diff: 1, graphic: '🧊💧💨', q: '當我們把液態的水放進雪櫃冰格（0°C以下），水會變成甚麼？', opts: ['🧊 固態的冰', '💨 氣態的水蒸氣', '🔥 滾燙的熱水', '🥛 白色的牛奶'], ans: 0, hint: '水結冰後硬硬的，叫做甚麼？', exp: '水在 0°C 或以下會結成固態的「冰」。' },
+            { diff: 1, graphic: '🫖🔥💨', q: '當媽媽煲水時，水滾了會冒出陣陣白煙並變成看不見的氣體飛散到空氣中，這是甚麼？', opts: ['💨 水蒸氣', '🧊 冰塊', '🪨 沙泥', '🧂 鹽巴'], ans: 0, hint: '水受熱蒸發變成的氣體叫做「水…氣」。', exp: '水受熱會蒸發成為氣態的「水蒸氣」。' },
+            { diff: 2, graphic: '🥤👀🪙', q: '把一枚硬幣放進裝滿清水的玻璃杯底，我們從外面依然能清楚看見硬幣，因為水是怎樣的？', opts: ['💎 沒有顏色、透明的', '🥛 白色的', '⚫ 黑色的', '🌈 七彩的'], ans: 0, hint: '如果水有顏色就擋住視線了，看得見代表水是透光的！', exp: '純水是「沒有顏色、透明」的，光線可以穿過。' },
+            { diff: 2, graphic: '💧➕🍬', q: '把白砂糖放進水裡攪拌，白砂糖慢慢看不見了，水變甜了，這說明水有甚麼能力？', opts: ['🥄 水能溶解某些物質（如糖和鹽）', '🪨 水能溶解石頭和鐵塊', '🎈 水能把糖變成氣球', '❄️ 水能把糖變成冰'], ans: 0, hint: '糖和鹽在水裡化開，叫做「溶…」。', exp: '水能夠「溶解」糖、鹽等物質，但不能溶解沙石或泥膠。' },
+            { diff: 2, graphic: '💧➕🪨', q: '把沙泥放進水裡攪拌，然後靜置一段時間，沙泥會怎樣？', opts: ['⬇️ 不能溶解，並慢慢沉澱到杯底', '✨ 完全溶解消失，水變甜', '⬆️ 全部浮在水面上', '💨 變成水蒸氣飛走'], ans: 0, hint: '這就是測驗卷判斷題考的「混有沙泥的水經過沉澱」！', exp: '沙泥不能溶解於水，靜置後會「沉澱」到水底，上面的水會變清澈。' },
+            { diff: 1, graphic: '🍉🍅🥬', q: '我們平時吃的水果和蔬菜（例如西瓜、番茄）裡面含有水分嗎？', opts: ['⭕ 含有豐富的水分', '❌ 完全一滴水都沒有', '🪨 只有石頭和沙', '🔥 只有火'], ans: 0, hint: '咬一口西瓜，為甚麼會有很多汁流出來？', exp: '所有生物（包括蔬菜水果和人體）體內都含有大量水分！' },
+            { diff: 2, graphic: '🧒💧📊', q: '人體大約有多少成（百分比）的重量是由「水」組成的？', opts: ['💧 大約六至七成（60%-70%）', '💧 只有一成（10%）', '💧 完全沒有水（0%）', '💧 百分之百全是水（100%）'], ans: 0, hint: '我們身體超過一半以上都是水分喔！', exp: '人體約有 60% 至 70% 是水分，所以每天都要補充充足水分。' },
+            { diff: 1, graphic: '🏃‍♂️☀️💦', q: '上完體育課流了很多汗之後，我們應該喝甚麼來補充身體水分最健康？', opts: ['🥛 溫白開水（清水）', '🥤 大量冰凍汽水', '♻️ 再生水', '🌊 未處理的西江水'], ans: 0, hint: '沒有顏色、沒有味道、最解渴又健康的是甚麼水？', exp: '流汗後喝「溫白開水」最能健康地補充身體流失的水分。' },
+            { diff: 2, graphic: '🚢📦🌍', q: '大型貨輪和渡輪在海上或江河上載客、運送貨物，這是利用了水的哪種用途？', opts: ['🚢 運輸', '⚡ 發電', '🌾 灌溉', '🐟 水產養殖'], ans: 0, hint: '把人或貨物從一個地方「運」送到另一個地方。', exp: '船隻航行載貨載客屬於水的「運輸」用途。' },
+            { diff: 2, graphic: '⛲🌳🏙️', q: '公園裡的人工噴泉、人工湖和綠化帶淋花，可以使用「再生水」嗎？', opts: ['⭕ 可以（美化環境及灌溉）', '❌ 不可以，一定要用礦泉水', '🍳 再生水只能用來煮飯', '🥤 再生水是用來喝的'], ans: 0, hint: '測驗選擇題有考：美化環境、灌溉、沖廁都是再生水的用途！', exp: '可以！再生水非常適合用於美化環境、公園景觀及綠化灌溉。' },
+
+            // --- 71-100: 生活情境應用題、浮沉實驗題、惜水小衛士進階題 ---
+            { diff: 2, graphic: '🏓🪨🥣', q: '把「乒乓球」和「小石頭」同時放進水杯裡，會出現甚麼結果？', opts: ['🏓 乒乓球浮在水面，🪨 小石頭沉到杯底', '兩個都沉到杯底', '兩個都浮在水面', '兩個都停在半空中'], ans: 0, hint: '空心的乒乓球很輕，實心的小石頭很重。', exp: '乒乓球受到水的浮力會浮在水面，小石頭則會沉到水底。' },
+            { diff: 2, graphic: '🪵🔩🥣', q: '把「木塊」和「鐵釘」同時放進水盆裡，哪一個會浮起來？', opts: ['🪵 木塊會浮起來', '🔩 鐵釘會浮起來', '兩個都會沉下去', '兩個都會溶解'], ans: 0, hint: '木筏是用木頭做的，因為木頭在水中會浮！', exp: '木塊比同體積的水輕，水的浮力能讓木塊浮在水面；鐵釘則會沉底。' },
+            { diff: 3, graphic: '🚢🔩🌊', q: '鐵釘放進水裡會沉底，為甚麼用鋼鐵造的巨大輪船卻能浮在海面上航行？', opts: ['🚢 輪船內部是空心的，排開大量水，獲得巨大浮力', '🎈 輪船上面綁了一萬個氣球', '🧲 海水有磁力吸住輪船', '🪶 輪船是用羽毛做的'], ans: 0, hint: '跟把泥膠捏成空心小船就能浮起來是同一個科學原理喔！', exp: '輪船做成空心結構，排開水的體積大，水的「浮力」就能托起整艘大船。' },
+            { diff: 1, graphic: '🌧️☂️🏞️', q: '天上的雨水落下來後，澳門會用甚麼設施把雨水收集起來，補充淡水資源？', opts: ['🏞️ 水塘和水庫', '🗑️ 垃圾桶', '📮 郵筒', '📺 電視機'], ans: 0, hint: '大水塘、九澳水庫、黑沙水庫是用來做甚麼的？', exp: '澳門利用水塘和水庫收集雨水。' },
+            { diff: 2, graphic: '🚿⏳💧', q: '為了節約用水，我們淋浴洗澡時應該怎樣做？', opts: ['⏱️ 縮短淋浴時間，抹肥皂時關水', '🎵 邊開著花灑邊唱半小時歌', '🛁 改用大浴缸放滿水浸浴', '🚰 洗完澡不關水龍頭直接走開'], ans: 0, hint: '洗澡時間越短，加上抹肥皂時關水，就能省下越多水！', exp: '縮短淋浴時間並在抹肥皂時關上花灑，是良好的節水習慣。' },
+            { diff: 1, graphic: '👕🧺💧', q: '家裡用洗衣機洗衣服時，怎樣做才最節約用水？', opts: ['👕 集齊足夠數量的髒衣服才開機洗', '🧦 每次只洗一隻襪子就開洗衣機', '🌊 每一件衣服分開十次洗', '🚰 洗衣機的水管一直漏水不管它'], ans: 0, hint: '為了一件小衣服就開一整缸水洗，會浪費很多水和電喔！', exp: '儲滿適量衣服才集中開洗衣機清洗，能有效節約用水和用電。' },
+            { diff: 1, graphic: '🚰💧🔧', q: '如果在學校洗手間發現水龍頭壞了，一直在滴水，我們應該怎樣做？', opts: ['🙋‍♂️ 立即通知老師或校工叔叔修理', '😂 跟同學一起去玩滴下來的水', '🙈 假裝看不見直接走開', '🔨 用石頭把水龍頭敲碎'], ans: 0, hint: '水龍頭漏水一滴一滴也會浪費很多水，小朋友應該請大人幫忙修理！', exp: '發現水龍頭漏水應立即通知老師或管理人員修理，珍惜點滴水資源。' },
+            { diff: 2, graphic: '🥬🥣🌱', q: '媽媽洗完菜和洗完米的水，除了倒掉之外，還可以用來做甚麼以節約用水？', opts: ['🌱 用來澆花或清潔地板、沖廁', '🍼 裝進奶瓶給弟弟直接喝', '🏊 倒進游泳池游泳', '👀 用來滴眼睛'], ans: 0, hint: '試卷分類題圖 A 就是把洗米水拿去澆盆栽！', exp: '洗米水和洗菜水可以用來澆花、拖地或沖廁，實踐「一水多用」。' },
+            { diff: 2, graphic: '🚗🪣🧽', q: '爸爸清潔私家車時，哪種方法最能節約用水？', opts: ['🪣 用水桶裝水配濕毛巾抹車', '🐍 長開水喉不斷射水沖洗半小時', '🍾 用一箱箱礦泉水沖車', '🌧️ 每天開消防喉射車'], ans: 0, hint: '用水桶裝固定分量的水抹車，比長開水喉射水省下幾十倍的水！', exp: '用水桶盛水及抹布擦洗汽車，比直接用水喉射水節約大量食水。' },
+            { diff: 2, graphic: '🏷️🚿🏅', q: '選購花灑頭、水龍頭或洗衣機時，貼有甚麼標誌代表該產品更省水？', opts: ['💧 用水效益標籤（節水標誌）', '🍬 甜度標籤', '🎮 遊戲標籤', '🎵 音樂標籤'], ans: 0, hint: '代表有節水功能的標籤叫做「用水效益標籤」。', exp: '貼有「用水效益標籤」的產品具有節水功能，能幫助節約用水。' },
+            { diff: 1, graphic: '🌵🐪🏜️', q: '在乾旱的沙漠裡，為甚麼只有仙人掌、駱駝等少數生物能生存？', opts: ['💧 因為沙漠極度缺乏水資源', '❄️ 因為沙漠太冷結冰了', '🌊 因為沙漠太多水淹沒了', '🏙️ 因為沙漠太多高樓大廈'], ans: 0, hint: '水是維持生命的要素，沙漠很少下雨，一般動植物很難生存。', exp: '水是維持生命的要素，沙漠嚴重缺水，只有耐旱生物才能生存。' },
+            { diff: 2, graphic: '🌾☀️🥀', q: '如果一個地方長期不下雨發生「旱災」，對農夫種植的農作物會有甚麼影響？', opts: ['🥀 農作物因缺水而枯萎失收', '🌾 農作物會長得比平時高十倍', '🐟 農田裡會長出很多大魚', '❄️ 農田會變成溜冰場'], ans: 0, hint: '植物沒有水灌溉就會枯萎！', exp: '植物需要水才能生存，缺水會導致農作物枯萎死亡。' },
+            { diff: 2, graphic: '🏭☠️🐟', q: '如果工廠把未經處理的毒水直接排入河流，會造成甚麼後果？', opts: ['☠️ 污染水源，令河裡的魚蝦死亡', '🐟 河裡的魚會變得更健康', '🚰 河水會變成好喝的果汁', '✨ 河水會自動消毒'], ans: 0, hint: '污水必須先送到污水處理廠處理，直接排入河裡會害死水生生物！', exp: '未經處理的污水會嚴重污染水源並導致水生生物死亡，因此必須經污水處理廠淨化。' },
+            { diff: 3, graphic: '♻️🚰🚫', q: '澳門新建社區鋪設了雙管道供水系統，其中紫色的「再生水」管道絕對不可以接駁到哪裡？', opts: ['🚰 廚房飲用水龍頭（不可飲用或煮食）', '🚽 洗手間馬桶水箱（沖廁）', '🌳 街心公園自動灑水器（綠化）', '⛲ 景觀噴水池（美化環境）'], ans: 0, hint: '再生水是「非飲用水」，絕對不能接去廚房煮飯或飲用！', exp: '再生水屬於非飲用水，只可用於沖廁、綠化灌溉和美化環境，不可用於煮食或飲用。' },
+            { diff: 1, graphic: '🍵👃👀', q: '桌上有一杯「白開水」和一杯「白醋」，不用嘴嚐，我們可以用甚麼方法分辨出白開水？', opts: ['👃 用鼻子聞（水沒有氣味，白醋有酸味）', '👀 用眼睛看顏色（兩杯都是透明無色）', '👂 用耳朵聽聲音', '📏 用尺子量高度'], ans: 0, hint: '水沒有顏色、沒有「氣味」；白醋雖然也透明，但聞起來很酸！', exp: '水「沒有氣味」，而白醋有濃烈的酸氣味，用鼻子聞就能分辨。' },
+            { diff: 1, graphic: '🥛🧂👅', q: '桌上有一杯「白開水」和一杯「透明鹽水」，兩杯都沒有氣味，怎樣分辨出白開水？', opts: ['👅 嚐一嚐味道（水沒有味道，鹽水是鹹的）', '👀 看哪一杯有顏色', '👃 聞哪一杯有香味', '🧲 用磁鐵吸一吸'], ans: 0, hint: '水沒有顏色、沒有氣味，也沒有「味道」！', exp: '純水「沒有味道」，而鹽水嚐起來是鹹的。' },
+            { diff: 2, graphic: '🎈💧🧤', q: '把水裝進圓氣球裡是圓球形，裝進塑膠手套裡變成手指形狀，這證明了水的哪項特性？', opts: ['🫗 水沒有固定形狀', '🚢 水有浮力', '⬇️ 水往低處流動', '⚡ 水可以發電'], ans: 0, hint: '跟著容器改變形狀，代表它自己有沒有固定形狀？', exp: '這證明了水「沒有固定形狀」。' },
+            { diff: 2, graphic: '⛰️🌧️🌊', q: '下雨時，雨水落在山頂上，最後會順著山坡匯聚到山谷和河流，這是因為水有甚麼特性？', opts: ['⬇️ 水會往低處流動', '⬆️ 水會往高處爬', '🫗 水有固定形狀', '🍬 水是甜的'], ans: 0, hint: '山頂是高處，山谷是低處，水往哪裡流？', exp: '因為「水會往低處流動」。' },
+            { diff: 2, graphic: '🏊🛟🌊', q: '我們去泳池學游泳時，抱著浮板或戴著水泡就能輕鬆浮在水面，這利用了水的甚麼特性？', opts: ['🌊 水的浮力', '🔥 水的熱力', '🧲 水的磁力', '⚡ 水的電力'], ans: 0, hint: '跟船隻能在水面航行的原理一樣！', exp: '利用了水的「浮力」。' },
+            { diff: 2, graphic: '🦷💧🛡️', q: '澳門自來水在處理過程中加入微量的「氟化物」，真正的目的是甚麼？', opts: ['🦷 保護市民牙齒，預防蛀牙', '🦠 殺死水中的細菌（消毒）', '⏳ 讓泥沙沉澱得更快', '🌸 讓食水聞起來有花香'], ans: 0, hint: '牙膏裡面也有「氟」，是用來保護甚麼的？記住不是消毒喔！', exp: '加入氟化物是為了保護牙齒、預防蛀牙；殺菌消毒是靠加入氯氣。' },
+            { diff: 3, graphic: '📋💯🇲🇴', q: '【總複習挑戰】關於澳門的食水與水資源，以下哪一項描述是「完全正確」的？', opts: ['🇲🇴 澳門淡水缺乏，主要靠廣東省供應西江水', '🏞️ 城門水塘是澳門最大的水塘', '♻️ 再生水經過處理後可以用來煲湯煮飯', '🪨 混有沙泥的水沉澱後會變得更污濁'], ans: 0, hint: '用排除法：城門水塘在香港、再生水不可煮食、沉澱後會變清澈！', exp: '澳門缺乏大河流和湖泊，淡水資源缺乏，主要向廣東省政府購買西江水。' },
+            { diff: 1, graphic: '🧼🙌🚰', q: '我們洗手時，在手掌塗抹洗手液並搓揉雙手20秒期間，水龍頭應該怎樣？', opts: ['✋ 先關上水龍頭，搓好泡泡再開水沖洗', '🌊 一直開到最大讓水流走', '🛁 把整個洗手盆塞住放滿水', '💦 一邊搓泡泡一邊跟同學潑水'], ans: 0, hint: '搓手的時候不需要沖水，先關上水龍頭最省水！', exp: '塗抹洗手液搓手時應先關上水龍頭，避免食水白白流走。' },
+            { diff: 2, graphic: '🌱🕒☀️', q: '在學校小花園或家裡給植物澆水，怎樣做既能節約用水又能讓植物吸收得更好？', opts: ['🌅 用洗米水或雨水適量澆在根部泥土', '🌊 中午大太陽時開大水喉狂沖一小時', '♻️ 用滾燙的開水澆花', '🧂 用濃鹽水澆花'], ans: 0, hint: '善用洗米水或收集的雨水適量澆灌，就是惜水小達人！', exp: '善用洗米水或雨水適量澆灌植物，能有效節約珍貴食水。' },
+            { diff: 2, graphic: '🍽️🧽🚰', q: '幫忙做家務洗碗時，以下哪種做法比較節約用水？', opts: ['🥣 先用抹布擦去油污，再用盆盛水清洗', '🚰 開大水龍頭對著一隻碗沖洗十分鐘', '🧴 倒一整支洗潔精再用十桶水沖', '🗑️ 把碗全部扔掉不洗'], ans: 0, hint: '先擦走油污並用洗碗盆集中清洗，能大幅減少用水量。', exp: '先擦去食物殘渣油污，再用盆盛水清洗，比長開水龍頭沖洗節省很多水。' },
+            { diff: 1, graphic: '🌍💧❤️', q: '每年的 3 月 22 日被聯合國定為「世界水日」，設立這個日子的主要目的是甚麼？', opts: ['💧 喚起大家珍惜水資源、節約用水的意識', '🏊 叫全世界的人一起去玩潑水節', '🚰 鼓勵大家把家裡水龍頭全部打開', '🥤 免費派發汽水'], ans: 0, hint: '水資源非常寶貴，我們每個人都要愛惜它！', exp: '世界水日旨在提醒所有人珍惜水資源、保護水源並節約用水。' },
+            { diff: 2, graphic: '🏞️➡️🏭➡️🏠', q: '我們打開家裡的水龍頭就有乾淨的自來水，這些水來之不易，它的正確旅程是怎樣的？', opts: ['西江原水 ➔ 食水處理廠 ➔ 輸水管網 ➔ 家中水龍頭', '大海海水 ➔ 直接抽上水龍頭', '污水處理廠 ➔ 直接變飲用水', '城門水塘 ➔ 澳門水龍頭'], ans: 0, hint: '西江水先到澳門的食水處理廠淨化消毒，再送到千家萬戶。', exp: '澳門自來水是由西江原水輸入食水處理廠，經混凝、沉澱、過濾、消毒後再輸送到家中。' },
+            { diff: 2, graphic: '🏠🚽➡️🏭➡️♻️', q: '我們在家裡沖廁、洗澡後排出的污水，流去哪裡處理後可以變成「再生水」？', opts: ['♻️ 污水處理廠', '🏭 食水處理廠', '⚡ 水力發電廠', '🏞️ 九澳水庫'], ans: 0, hint: '處理「污水」的工廠叫甚麼名字？', exp: '城市排放的污水會送到「污水處理廠」淨化成再生水。' },
+            { diff: 2, graphic: '🎡💧🏆', q: '【常識測驗滿分題】水有三大方面的重要價值：維持生命、日常生活所需，以及工農業發展。以下哪項屬於農業用途？', opts: ['🌾 灌溉農作物與水產養殖', '🚒 消防員救火', '🏊 泳池游泳消閒', '🪥 早晚刷牙洗臉'], ans: 0, hint: '農夫種田和養魚都屬於農業與漁業用途喔！', exp: '灌溉農作物和水產養殖是水在農漁業上的重要用途。' },
+            { diff: 3, graphic: '⚖️🥣⚪', q: '【實驗題】把一塊泥膠先搓成「實心圓球」放進水杯，再拿出來捏成「小碗形狀」放進水杯，結果會怎樣？', opts: ['⬇️ 實心圓球沉在杯底；⛵ 小碗形狀浮在水面', '兩次都浮在水面', '兩次都沉在杯底', '實心圓球浮在水面；小碗形狀沉在杯底'], ans: 0, hint: '試卷附加題考的是實心泥膠球（沉在杯底），捏成碗形像船一樣就能浮起！', exp: '實心泥膠球會沉到水杯底部；捏成空心碗狀或船狀則能利用水的浮力浮在水面。' },
+            { diff: 1, graphic: '🌟🎓💯', q: '玩完這個三麗鷗水世界大富翁後，面對《常識測驗(二)：水》，我們要怎樣做才能拿高分？', opts: ['💯 記熟水的特性、用途、食水處理與節約用水知識，細心審題！', '🙈 不看題目亂填答案', '😴 考試時趴在桌上睡覺', '🏃 忘記畫附加題的泥膠球'], ans: 0, hint: '只要細心看清「是」與「不是」、記得畫附加題泥膠球在杯底，一定能拿滿分！', exp: '祝各位同學在《常識測驗(二)》全班奪取佳績！' }
+        ];
+
+        /* =========================================================================
+           4. SOUND EFFECTS (Web Audio API) & SPEECH SYNTHESIS (TTS)
+           ========================================================================= */
+        let audioCtx = null;
+        let sfxEnabled = true;
+        let autoTtsEnabled = true;
+
+        function initAudio() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) audioCtx = new AudioContext();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        function playTone(freq, type = 'square', duration = 0.12, delay = 0, vol = 0.08) {
+            if (!sfxEnabled) return;
+            try {
+                initAudio();
+                if (!audioCtx) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
+                gain.gain.setValueAtTime(vol, audioCtx.currentTime + delay);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + duration);
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(audioCtx.currentTime + delay);
+                osc.stop(audioCtx.currentTime + delay + duration);
+            } catch (e) {}
+        }
+
+        function sfxDice() {
+            playTone(330, 'square', 0.06, 0);
+            playTone(440, 'square', 0.06, 0.07);
+            playTone(587, 'square', 0.08, 0.14);
+        }
+        function sfxStep() {
+            playTone(523, 'triangle', 0.07, 0, 0.07);
+        }
+        function sfxCorrect() {
+            playTone(523.25, 'square', 0.1, 0);
+            playTone(659.25, 'square', 0.1, 0.1);
+            playTone(783.99, 'square', 0.1, 0.2);
+            playTone(1046.5, 'square', 0.25, 0.3);
+        }
+        function sfxWrong() {
+            playTone(300, 'sawtooth', 0.18, 0);
+            playTone(220, 'sawtooth', 0.3, 0.18);
+        }
+        function sfxCoin() {
+            playTone(987.77, 'sine', 0.08, 0, 0.1);
+            playTone(1318.51, 'sine', 0.22, 0.08, 0.1);
+        }
+
+        function speakText(text) {
+            if (!('speechSynthesis' in window)) return;
+            try {
+                window.speechSynthesis.cancel();
+                const cleanText = text.replace(/[^\u4e00-\u9fa5a-zA-Z0-9，。？！、：（）；「」％%]/g, ' ');
+                const utter = new SpeechSynthesisUtterance(cleanText);
+                const voices = window.speechSynthesis.getVoices();
+                // Prefer Cantonese (zh-HK) or Traditional Chinese (zh-TW) or Mandarin
+                const zhVoice = voices.find(v => v.lang.includes('zh-HK') || v.lang.includes('yue')) ||
+                                voices.find(v => v.lang.includes('zh-TW')) ||
+                                voices.find(v => v.lang.includes('zh'));
+                if (zhVoice) utter.voice = zhVoice;
+                utter.lang = zhVoice ? zhVoice.lang : 'zh-HK';
+                utter.rate = 0.95;
+                utter.pitch = 1.05;
+                window.speechSynthesis.speak(utter);
+            } catch (e) {}
+        }
+
+        function toggleAutoTTS() {
+            autoTtsEnabled = !autoTtsEnabled;
+            document.getElementById('autoTtsLabel').textContent = `自動讀題: ${autoTtsEnabled ? '開' : '關'}`;
+            document.getElementById('autoTtsBtn').className = autoTtsEnabled
+                ? 'bg-emerald-400 hover:bg-emerald-500 text-slate-900 font-black px-3 py-1.5 pixel-btn text-xs md:text-sm flex items-center gap-1'
+                : 'bg-slate-300 hover:bg-slate-400 text-slate-700 font-black px-3 py-1.5 pixel-btn text-xs md:text-sm flex items-center gap-1';
+        }
+
+        function toggleSFX() {
+            sfxEnabled = !sfxEnabled;
+            document.getElementById('sfxLabel').textContent = `音效: ${sfxEnabled ? '開' : '關'}`;
+            document.getElementById('sfxBtn').className = sfxEnabled
+                ? 'bg-amber-300 hover:bg-amber-400 text-slate-900 font-black px-3 py-1.5 pixel-btn text-xs md:text-sm flex items-center gap-1'
+                : 'bg-slate-300 hover:bg-slate-400 text-slate-700 font-black px-3 py-1.5 pixel-btn text-xs md:text-sm flex items-center gap-1';
+        }
+
+        /* =========================================================================
+           5. GAME STATE & SETUP CONFIGURATION
+           ========================================================================= */
+        let selectedPlayerCount = 4;
+        let selectedDurationMinutes = 20;
+        let remainingSeconds = 20 * 60;
+        let timerInterval = null;
+        let isTimerPaused = false;
+
+        let players = [];
+        let currentPlayerIdx = 0;
+        let isRolling = false;
+        let tileOwnership = {}; // tileId -> { ownerIdx, level: 1..3 }
+        let shuffledQuestionIndices = [];
+        let usedQuestionsCount = 0;
+        let currentActiveQuestion = null;
+
+        function renderSetupCharacterPreview() {
+            const container = document.getElementById('setupCharPreview');
+            container.innerHTML = SANRIO_CHARS.map((ch, idx) => {
+                const active = idx < selectedPlayerCount;
+                return `
+                <div class="p-3 pixel-box-sm flex flex-col items-center text-center transition-all ${active ? 'bg-white opacity-100 scale-100' : 'bg-slate-100 opacity-45 scale-95'}" style="border-color:${ch.borderHex}">
+                    <div class="w-14 h-14 mb-1.5 p-1 rounded-lg" style="background:${ch.bgLight}">
+                        ${ch.svg}
+                    </div>
+                    <div class="font-black text-sm text-slate-800">${ch.name}</div>
+                    <div class="text-[11px] font-bold px-2 py-0.5 rounded-full mt-1 text-white" style="background:${ch.color}">
+                        ${active ? '✔ 參賽組別 ' + (idx + 1) : '未啟用'}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function selectPlayerCount(count) {
+            selectedPlayerCount = count;
+            [3, 4, 5, 6].forEach(n => {
+                const btn = document.getElementById(`pCount-${n}`);
+                btn.className = n === count
+                    ? 'pcount-btn py-2.5 font-black text-base md:text-lg pixel-btn bg-pink-500 text-white'
+                    : 'pcount-btn py-2.5 font-black text-base md:text-lg pixel-btn bg-white text-slate-700';
+            });
+            renderSetupCharacterPreview();
+            sfxStep();
+        }
+
+        function selectDuration(mins) {
+            selectedDurationMinutes = mins;
+            [10, 20, 40].forEach(m => {
+                const btn = document.getElementById(`dur-${m}`);
+                btn.className = m === mins
+                    ? 'dur-btn py-2.5 font-black text-base md:text-lg pixel-btn bg-purple-600 text-white'
+                    : 'dur-btn py-2.5 font-black text-base md:text-lg pixel-btn bg-white text-slate-700';
+            });
+            sfxStep();
+        }
+
+        function shuffleQuestions() {
+            shuffledQuestionIndices = Array.from({ length: QUESTION_BANK.length }, (_, i) => i);
+            for (let i = shuffledQuestionIndices.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledQuestionIndices[i], shuffledQuestionIndices[j]] = [shuffledQuestionIndices[j], shuffledQuestionIndices[i]];
+            }
+        }
+
+        function drawNextQuestion(preferredMinDiff = 1) {
+            if (shuffledQuestionIndices.length === 0) {
+                shuffleQuestions();
+            }
+            let pickIdx = 0;
+            if (preferredMinDiff > 1) {
+                const found = shuffledQuestionIndices.findIndex(qIdx => QUESTION_BANK[qIdx].diff >= preferredMinDiff);
+                if (found !== -1) pickIdx = found;
+            }
+            const qBankIndex = shuffledQuestionIndices.splice(pickIdx, 1)[0];
+            usedQuestionsCount++;
+            const badge = document.getElementById('questionCounterBadge');
+            if (badge) badge.textContent = `已答: ${usedQuestionsCount} / 100 題`;
+            return QUESTION_BANK[qBankIndex];
+        }
+
+        /* =========================================================================
+           6. START GAME & RENDER BOARD
+           ========================================================================= */
+        function startGame() {
+            initAudio();
+            sfxCorrect();
+            players = SANRIO_CHARS.slice(0, selectedPlayerCount).map((ch, idx) => ({
+                idx,
+                ...ch,
+                money: 1500,
+                pos: 0,
+                correctCount: 0,
+                lands: []
+            }));
+            currentPlayerIdx = 0;
+            tileOwnership = {};
+            usedQuestionsCount = 0;
+            shuffleQuestions();
+
+            // Setup Timer
+            remainingSeconds = selectedDurationMinutes * 60;
+            isTimerPaused = false;
+            updateTimerDisplay();
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => {
+                if (!isTimerPaused && remainingSeconds > 0) {
+                    remainingSeconds--;
+                    updateTimerDisplay();
+                    if (remainingSeconds === 0) {
+                        // Gentle notification without interrupting active question
+                        const logEl = document.getElementById('centerEventLog');
+                        if (logEl) {
+                            logEl.innerHTML = `⏰ 預設課堂時間已到！老師可隨時點擊右上角「結束並進入測驗溫習」進行全班總結！`;
+                        }
+                    }
+                }
+            }, 1000);
+
+            document.getElementById('setupScreen').classList.add('hidden');
+            document.getElementById('gameScreen').classList.remove('hidden');
+            document.getElementById('topGameControls').classList.remove('hidden');
+
+            renderBoardGrid();
+            renderPlayerSidebar();
+            updateCenterStageUI();
+        }
+
+        function updateTimerDisplay() {
+            const m = Math.floor(remainingSeconds / 60).toString().padStart(2, '0');
+            const s = (remainingSeconds % 60).toString().padStart(2, '0');
+            document.getElementById('timerDisplay').textContent = `${m}:${s}`;
+        }
+
+        function togglePauseTimer() {
+            isTimerPaused = !isTimerPaused;
+            document.getElementById('pauseTimerBtn').textContent = isTimerPaused ? '繼續' : '暫停';
+        }
+
+        function calculatePlayerTotalAssets(p) {
+            let landVal = 0;
+            Object.keys(tileOwnership).forEach(tId => {
+                const own = tileOwnership[tId];
+                if (own && own.ownerIdx === p.idx) {
+                    const tile = BOARD_TILES[tId];
+                    landVal += tile.price * own.level;
+                }
+            });
+            return p.money + landVal;
+        }
+
+        function renderPlayerSidebar() {
+            const list = document.getElementById('playerSidebarList');
+            list.innerHTML = players.map((p, idx) => {
+                const isTurn = idx === currentPlayerIdx;
+                const totalAssets = calculatePlayerTotalAssets(p);
+                return `
+                <div class="p-2.5 pixel-box-sm transition-all flex items-center justify-between gap-2 ${isTurn ? 'bg-yellow-100 ring-4 ring-pink-500 scale-[1.02]' : 'bg-white'}" style="border-color:${p.borderHex}">
+                    <div class="flex items-center gap-2.5 min-w-0">
+                        <div class="w-11 h-11 rounded-lg p-1 shrink-0 border-2 border-[#2d1b4e]" style="background:${p.bgLight}">
+                            ${p.svg}
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex items-center gap-1">
+                                <span class="font-black text-sm md:text-base truncate" style="color:${p.borderHex}">${p.name}</span>
+                                ${isTurn ? '<span class="bg-pink-500 text-white text-[10px] font-black px-1.5 py-0.5 rounded animate-pulse">擲骰中</span>' : ''}
+                            </div>
+                            <div class="text-xs font-bold text-slate-600 flex items-center gap-2">
+                                <span>🏠 ${p.lands.length}塊地</span>
+                                <span>✔ ${p.correctCount}題</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right shrink-0">
+                        <div class="font-black text-base md:text-lg text-emerald-700 pixel-font">$${p.money}</div>
+                        <div class="text-[10px] font-bold text-slate-400">總值 $${totalAssets}</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderBoardGrid() {
+            const grid = document.getElementById('boardGrid');
+            let html = '';
+
+            // 20 Perimeter Tiles
+            BOARD_TILES.forEach(tile => {
+                const own = tileOwnership[tile.id];
+                const ownerPlayer = own ? players[own.ownerIdx] : null;
+                const stars = own ? '⭐'.repeat(own.level) : '';
+                const occupants = players.filter(p => p.pos === tile.id);
+                const isCurrentPlayerHere = players[currentPlayerIdx] && players[currentPlayerIdx].pos === tile.id;
+
+                html += `
+                <div id="tile-${tile.id}" style="grid-row:${tile.r}; grid-column:${tile.c};"
+                     class="bg-white pixel-box-sm flex flex-col justify-between p-1.5 relative overflow-hidden transition-all ${isCurrentPlayerHere ? 'active-tile-glow' : ''}">
+                    <!-- Top Color Banner -->
+                    <div class="${tile.color} text-white px-1.5 py-0.5 rounded border border-[#2d1b4e] flex items-center justify-between text-[11px] md:text-xs font-black">
+                        <span class="truncate">${tile.id}. ${tile.name}</span>
+                        <span>${tile.icon}</span>
+                    </div>
+
+                    <!-- Middle Info & Owner Badge -->
+                    <div class="my-auto text-center py-0.5">
+                        ${ownerPlayer ? `
+                            <div class="inline-block px-1.5 py-0.5 rounded text-[10px] md:text-xs font-black text-white shadow-sm" style="background:${ownerPlayer.color}">
+                                ${ownerPlayer.name.replace('組','')} ${stars}
+                            </div>
+                            <div class="text-[10px] font-bold text-rose-700">過路費 $${tile.toll * own.level}</div>
+                        ` : `
+                            <div class="text-[11px] font-bold text-slate-600">${tile.desc}</div>
+                        `}
+                    </div>
+
+                    <!-- Player Tokens on Tile -->
+                    <div class="flex items-center justify-center gap-1 flex-wrap min-h-[26px] bg-slate-100/80 rounded px-1 py-0.5">
+                        ${occupants.map(occ => `
+                            <div class="w-6 h-6 md:w-7 md:h-7 rounded-full border-2 border-[#2d1b4e] p-0.5 shadow-sm animate-bounce-slow"
+                                 style="background:${occ.bgLight}" title="${occ.name}">
+                                ${occ.svg}
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>`;
+            });
+
+            // Center Stage (4x4 middle area)
+            html += `
+            <div class="center-stage bg-gradient-to-br from-white via-pink-50 to-sky-50 pixel-box p-3 md:p-5 flex flex-col items-center justify-between text-center relative overflow-hidden">
+                <!-- Top Banner -->
+                <div class="w-full flex flex-wrap items-center justify-between gap-2 border-b-2 border-purple-200 pb-2">
+                    <div class="flex items-center gap-2">
+                        <span class="bg-purple-600 text-white text-xs font-black px-2.5 py-1 rounded-full">
+                            🛡️ 答題不計時 • 放心走出來
+                        </span>
+                        <span class="text-xs font-bold text-slate-600 hidden sm:inline">
+                            買地、升級、機會、問答及小遊戲都要先答對問題！
+                        </span>
+                    </div>
+                    <button onclick="triggerManualBonusQuiz()" class="bg-amber-300 hover:bg-amber-400 text-slate-900 font-black px-3 py-1 pixel-btn text-xs flex items-center gap-1">
+                        <span>🙋</span> 額外搶答題 (+$200)
+                    </button>
+                </div>
+
+                <!-- Active Player Spotlight & Dice Area -->
+                <div class="my-auto flex flex-col items-center max-w-md w-full py-2">
+                    <div class="text-xs font-black text-purple-700 uppercase tracking-widest mb-1">現在輪到這組派代表出來白板擲骰子</div>
+                    <div class="flex items-center gap-4 bg-white px-5 py-3 pixel-box-sm mb-3 w-full justify-center">
+                        <div id="centerCharAvatar" class="w-16 h-16 p-1.5 rounded-xl border-2 border-[#2d1b4e] shrink-0"></div>
+                        <div class="text-left">
+                            <div id="centerCharName" class="text-xl md:text-2xl font-black text-purple-900">酷洛米組</div>
+                            <div id="centerCharStats" class="text-xs md:text-sm font-bold text-slate-600">水滴金幣: $1500 | 位置: 起點</div>
+                        </div>
+                    </div>
+
+                    <!-- Dice Display + Roll Button -->
+                    <div class="flex items-center gap-4">
+                        <div id="diceBox" class="w-16 h-16 md:w-20 md:h-20 bg-white pixel-box flex items-center justify-center text-4xl md:text-5xl font-black text-purple-900 select-none">
+                            🎲
+                        </div>
+                        <button id="rollDiceBtn" onclick="handleRollDice()" class="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-black text-xl md:text-2xl px-8 py-4 pixel-btn flex items-center gap-2">
+                            <span>🎲</span> 點擊擲骰子！
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Event Log Bar -->
+                <div id="centerEventLog" class="w-full bg-sky-100 border-2 border-[#2d1b4e] rounded-lg px-3 py-2 text-xs md:text-sm font-black text-sky-950">
+                    🌟 遊戲開始！請【酷洛米組】派一位同學慢慢走出來點擊「擲骰子」！
+                </div>
+            </div>`;
+
+            grid.innerHTML = html;
+        }
+
+        function updateCenterStageUI() {
+            const p = players[currentPlayerIdx];
+            if (!p) return;
+            const avatarEl = document.getElementById('centerCharAvatar');
+            const nameEl = document.getElementById('centerCharName');
+            const statsEl = document.getElementById('centerCharStats');
+            if (avatarEl) {
+                avatarEl.style.background = p.bgLight;
+                avatarEl.innerHTML = p.svg;
+            }
+            if (nameEl) {
+                nameEl.textContent = p.name;
+                nameEl.style.color = p.borderHex;
+            }
+            if (statsEl) {
+                const tileName = BOARD_TILES[p.pos].name;
+                statsEl.textContent = `💧金幣: $${p.money} ｜ 📍位置: ${tileName}`;
+            }
+        }
+
+        function setCenterLog(msg) {
+            const el = document.getElementById('centerEventLog');
+            if (el) el.innerHTML = msg;
+        }
+
+        /* =========================================================================
+           7. DICE ROLLING & MOVEMENT LOGIC
+           ========================================================================= */
+        const DICE_FACES = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+
+        function handleRollDice() {
+            if (isRolling) return;
+            initAudio();
+            isRolling = true;
+            const rollBtn = document.getElementById('rollDiceBtn');
+            const diceBox = document.getElementById('diceBox');
+            if (rollBtn) rollBtn.disabled = true;
+
+            let ticks = 0;
+            const anim = setInterval(() => {
+                sfxDice();
+                const tempFace = DICE_FACES[Math.floor(Math.random() * 6)];
+                if (diceBox) diceBox.textContent = tempFace;
+                ticks++;
+                if (ticks >= 10) {
+                    clearInterval(anim);
+                    const steps = Math.floor(Math.random() * 6) + 1;
+                    if (diceBox) diceBox.textContent = DICE_FACES[steps - 1];
+                    const p = players[currentPlayerIdx];
+                    setCenterLog(`🎲 【${p.name}】擲出了 <b>${steps} 點</b>！正在前進...`);
+                    movePlayerStepByStep(steps);
+                }
+            }, 70);
+        }
+
+        function movePlayerStepByStep(stepsRemaining) {
+            const p = players[currentPlayerIdx];
+            if (stepsRemaining <= 0) {
+                renderBoardGrid();
+                renderPlayerSidebar();
+                updateCenterStageUI();
+                setTimeout(() => evaluateLandedTile(p), 300);
+                return;
+            }
+
+            setTimeout(() => {
+                p.pos = (p.pos + 1) % BOARD_TILES.length;
+                sfxStep();
+                // Check passing GO
+                if (p.pos === 0) {
+                    p.money += 300;
+                    sfxCoin();
+                    setCenterLog(`🚩 【${p.name}】經過起點 GO，獲得水源補助 <b>+$300</b>！`);
+                }
+                renderBoardGrid();
+                renderPlayerSidebar();
+                updateCenterStageUI();
+                movePlayerStepByStep(stepsRemaining - 1);
+            }, 220);
+        }
+
+        /* =========================================================================
+           8. TILE EVALUATION (Every Tile Triggers a Question Opportunity!)
+           ========================================================================= */
+        function evaluateLandedTile(p) {
+            const tile = BOARD_TILES[p.pos];
+
+            if (tile.type === 'start') {
+                // Even on GO, give an easy bonus question opportunity for extra excitement
+                openQuestionModal({
+                    icon: '🚩',
+                    title: `到達【起點 GO】獎勵問答`,
+                    minDiff: 1,
+                    onCorrect: () => {
+                        p.money += 200;
+                        sfxCoin();
+                        return {
+                            title: '答對了！獲得起點雙倍獎勵 +$200！',
+                            desc: `【${p.name}】除了經過起點的 $300，再額外獲得 $200！`,
+                            buttons: [{ label: '下一組回合 ➔', action: 'nextTurn', style: 'bg-purple-600 text-white' }]
+                        };
+                    },
+                    onWrong: () => ({
+                        title: '差一點點！不過停在起點依然安全！',
+                        desc: '記住正確答案，下次一定能答對！',
+                        buttons: [{ label: '下一組回合 ➔', action: 'nextTurn', style: 'bg-slate-600 text-white' }]
+                    })
+                });
+                return;
+            }
+
+            if (tile.type === 'property') {
+                const own = tileOwnership[tile.id];
+                // Case A: Unowned Land -> Must answer question correctly to buy!
+                if (!own) {
+                    openQuestionModal({
+                        icon: tile.icon,
+                        title: `買地挑戰：【${tile.name}】(地價 $${tile.price})`,
+                        minDiff: 1,
+                        onCorrect: () => {
+                            p.money += 100; // Bonus for answering right
+                            const canAfford = p.money >= tile.price;
+                            return {
+                                title: `🎉 答對了！先獎答題金 +$100，並獲得【${tile.name}】購買權！`,
+                                desc: canAfford
+                                    ? `目前金幣 $${p.money}，是否花費 $${tile.price} 買下【${tile.name}】（過路費 $${tile.toll}）？`
+                                    : `目前金幣不足 $${tile.price}，但你已獲得 +$100 答題獎金！`,
+                                buttons: canAfford ? [
+                                    { label: `🏠 買下土地 (-$${tile.price})`, action: 'buyLand', tileId: tile.id, style: 'bg-emerald-500 text-slate-900' },
+                                    { label: '暫不買地，下一組 ➔', action: 'nextTurn', style: 'bg-slate-300 text-slate-800' }
+                                ] : [
+                                    { label: '下一組回合 ➔', action: 'nextTurn', style: 'bg-purple-600 text-white' }
+                                ]
+                            };
+                        },
+                        onWrong: () => ({
+                            title: `😢 答錯了，今次未能購買【${tile.name}】`,
+                            desc: '要把這題常識記起來喔！下次經過再買！',
+                            buttons: [{ label: '下一組回合 ➔', action: 'nextTurn', style: 'bg-slate-600 text-white' }]
+                        })
+                    });
+                }
+                // Case B: Owned by Current Player -> Answer question to Upgrade!
+                else if (own.ownerIdx === p.idx) {
+                    const upgradeCost = Math.round(tile.price * 0.5);
+                    openQuestionModal({
+                        icon: '⭐',
+                        title: `升級土地挑戰：【${tile.name}】(升級費 $${upgradeCost})`,
+                        minDiff: 2,
+                        onCorrect: () => {
+                            p.money += 100;
+                            const canUpgrade = own.level < 3 && p.money >= upgradeCost;
+                            return {
+                                title: `🎉 答對了！獲得 +$100，並可升級【${tile.name}】！`,
+                                desc: canUpgrade
+                                    ? `花費 $${upgradeCost} 可將土地升至 ${own.level + 1} 星，過路費倍增！`
+                                    : `土地已達最高星級或金幣不足，已獲 +$100 獎金！`,
+                                buttons: canUpgrade ? [
+                                    { label: `⭐ 升級土地 (-$${upgradeCost})`, action: 'upgradeLand', tileId: tile.id, cost: upgradeCost, style: 'bg-amber-400 text-slate-900' },
+                                    { label: '不升級，下一組 ➔', action: 'nextTurn', style: 'bg-slate-300 text-slate-800' }
+                                ] : [
+                                    { label: '下一組回合 ➔', action: 'nextTurn', style: 'bg-purple-600 text-white' }
+                                ]
+                            };
+                        },
+                        onWrong: () => ({
+                            title: `未能升級【${tile.name}】`,
+                            desc: '不用灰心，這塊地依然屬於你們組！',
+                            buttons: [{ label: '下一組回合 ➔', action: 'nextTurn', style: 'bg-slate-600 text-white' }]
+                        })
+                    });
+                }
+                // Case C: Owned by Another Player -> Answer question for 50% Toll Discount!
+                else {
+                    const owner = players[own.ownerIdx];
+                    const fullToll = tile.toll * own.level;
+                    const halfToll = Math.round(fullToll * 0.5);
+                    openQuestionModal({
+                        icon: '🚧',
+                        title: `踩中【${owner.name}】的${tile.name}！答對過路費半價！`,
+                        minDiff: 2,
+                        onCorrect: () => {
+                            p.money = Math.max(0, p.money - halfToll);
+                            owner.money += halfToll;
+                            sfxCoin();
+                            return {
+                                title: `🛡️ 答對問題！過路費減半，只需付 $${halfToll}！`,
+                                desc: `成功節省了一半過路費！已支付 $${halfToll} 給【${owner.name}】。`,
+                                buttons: [{ label: '下一組回合 ➔', action: 'nextTurn', style: 'bg-purple-600 text-white' }]
+                            };
+                        },
+                        onWrong: () => {
+                            p.money = Math.max(0, p.money - fullToll);
+                            owner.money += fullToll;
+                            return {
+                                title: `💸 答錯了，需支付全額過路費 $${fullToll} 給【${owner.name}】`,
+                                desc: `把上面的常識解析記熟，下次就能省下過路費！`,
+                                buttons: [{ label: '下一組回合 ➔', action: 'nextTurn', style: 'bg-slate-600 text-white' }]
+                            };
+                        }
+                    });
+                }
+                return;
+            }
+
+            if (tile.type === 'chance') {
+                openQuestionModal({
+                    icon: tile.icon,
+                    title: `【${tile.name}】答對抽三麗鷗幸運大賞卡！`,
+                    minDiff: 1,
+                    onCorrect: () => {
+                        const cards = [
+                            { text: '安裝了花灑節水器，獲政府節水嘉許獎金 +$350！', diff: 350 },
+                            { text: '用洗米水澆花，令三麗鷗花園盛開，獲獎金 +$300！', diff: 300 },
+                            { text: '參觀青洲食水處理廠表現優異，獲獎學金 +$400！', diff: 400 },
+                            { text: '幫忙通知老師修理漏水水龍頭，獲惜水勳章 +$350！', diff: 350 }
+                        ];
+                        const picked = cards[Math.floor(Math.random() * cards.length)];
+                        p.money += picked.diff;
+                        sfxCoin();
+                        return {
+                            title: `🎁 抽中幸運機會卡：${picked.text}`,
+                            desc: `【${p.name}】金幣增加 +$${picked.diff}！`,
+                            buttons: [{ label: '太棒了！下一組 ➔', action: 'nextTurn', style: 'bg-purple-600 text-white' }]
+                        };
+                    },
+                    onWrong: () => {
+                        p.money = Math.max(0, p.money - 50);
+                        return {
+                            title: `💦 答錯了！忘記關水龍頭被扣水費 -$50`,
+                            desc: `記得看清楚上面的正確解釋喔！`,
+                            buttons: [{ label: '下一組回合 ➔', action: 'nextTurn', style: 'bg-slate-600 text-white' }]
+                        };
+                    }
+                });
+                return;
+            }
+
+            if (tile.type === 'quiz') {
+                const isSuper = tile.id === 18;
+                const reward = isSuper ? 450 : 350;
+                openQuestionModal({
+                    icon: tile.icon,
+                    title: `【${tile.name}】答對即贏取獎學金 +$${reward}！`,
+                    minDiff: isSuper ? 2 : 1,
+                    onCorrect: () => {
+                        p.money += reward;
+                        sfxCoin();
+                        return {
+                            title: `🏆 恭喜答對！贏得常識獎學金 +$${reward}！`,
+                            desc: `【${p.name}】的常識知識非常紮實！`,
+                            buttons: [{ label: '收下獎金，下一組 ➔', action: 'nextTurn', style: 'bg-emerald-500 text-slate-900' }]
+                        };
+                    },
+                    onWrong: () => {
+                        p.money += 50; // Consolation prize for trying
+                        return {
+                            title: `💡 答錯了，不過獲得鼓勵獎 +$50！`,
+                            desc: `把這道題目的正確答案記在心裡，測驗時一定會考喔！`,
+                            buttons: [{ label: '下一組回合 ➔', action: 'nextTurn', style: 'bg-slate-600 text-white' }]
+                        };
+                    }
+                });
+                return;
+            }
+
+            if (tile.type === 'minigame') {
+                openQuestionModal({
+                    icon: tile.icon,
+                    title: `小遊戲入場券：先答對問題即可玩【${tile.name}】！`,
+                    minDiff: 1,
+                    onCorrect: () => {
+                        p.money += 100;
+                        return {
+                            title: `🎮 答對了！獲得 +$100 及【${tile.name}】入場資格！`,
+                            desc: `請點擊下方按鈕開始白板互動小遊戲！`,
+                            buttons: [{ label: `🎮 開始玩【${tile.name}】`, action: 'startMiniGame', tileId: tile.id, style: 'bg-emerald-400 text-slate-900' }]
+                        };
+                    },
+                    onWrong: () => ({
+                        title: `😢 差一點點！我們也讓你進入【${tile.name}】練習一次！`,
+                        desc: `為免同學白走一趟，讀完上面的正確答案後，一樣可以玩小遊戲拿練習獎金！`,
+                        buttons: [{ label: `🎮 進入【${tile.name}】`, action: 'startMiniGame', tileId: tile.id, style: 'bg-amber-400 text-slate-900' }]
+                    })
+                });
+            }
+        }
+
+        /* =========================================================================
+           9. QUESTION MODAL CONTROLLER (With TTS, Hints, Illustrated Options)
+           ========================================================================= */
+        let currentModalConfig = null;
+
+        function openQuestionModal(config) {
+            currentModalConfig = config;
+            const q = drawNextQuestion(config.minDiff || 1);
+            currentActiveQuestion = q;
+            const p = players[currentPlayerIdx];
+
+            document.getElementById('qModalActionIcon').textContent = config.icon || '❓';
+            document.getElementById('qModalActionTitle').textContent = config.title || '常識挑戰題';
+
+            // Difficulty badge
+            const diffBadge = document.getElementById('qDifficultyBadge');
+            if (q.diff === 1) {
+                diffBadge.textContent = '⭐ 容易基礎題';
+                diffBadge.className = 'bg-emerald-300 text-emerald-950 font-black px-3 py-1 rounded-full border-2 border-[#2d1b4e] text-xs md:text-sm';
+            } else if (q.diff === 2) {
+                diffBadge.textContent = '⭐⭐ 中等進階題';
+                diffBadge.className = 'bg-yellow-300 text-purple-950 font-black px-3 py-1 rounded-full border-2 border-[#2d1b4e] text-xs md:text-sm';
+            } else {
+                diffBadge.textContent = '⭐⭐⭐ 困難挑戰題 (可按提示)';
+                diffBadge.className = 'bg-rose-400 text-white font-black px-3 py-1 rounded-full border-2 border-[#2d1b4e] text-xs md:text-sm';
+            }
+
+            // Player Info
+            const avatarBox = document.getElementById('qPlayerAvatar');
+            avatarBox.style.background = p.bgLight;
+            avatarBox.innerHTML = p.svg;
+            document.getElementById('qPlayerName').textContent = p.name;
+
+            // Question & Visual
+            document.getElementById('qVisualGraphic').textContent = q.graphic || '💧📚✨';
+            document.getElementById('qText').textContent = q.q;
+
+            // Reset Hint & Feedback
+            document.getElementById('qHintBox').classList.add('hidden');
+            document.getElementById('qHintText').textContent = q.hint;
+            document.getElementById('qFeedbackBox').classList.add('hidden');
+
+            // Shuffle option order slightly or keep standard A/B/C/D with letters
+            const letters = ['A', 'B', 'C', 'D'];
+            const optsGrid = document.getElementById('qOptionsGrid');
+            optsGrid.innerHTML = q.opts.map((optText, idx) => `
+                <button onclick="submitQuestionAnswer(${idx})" id="qOptBtn-${idx}"
+                        class="q-opt-btn text-left p-3.5 md:p-4 bg-white hover:bg-sky-100 pixel-btn flex items-center gap-3 transition-all">
+                    <span class="w-9 h-9 rounded-lg bg-purple-600 text-white font-black flex items-center justify-center text-lg shrink-0 border-2 border-[#2d1b4e]">
+                        ${letters[idx]}
+                    </span>
+                    <span class="font-black text-base md:text-lg text-slate-800 leading-snug">${optText}</span>
+                </button>
+            `).join('');
+
+            document.getElementById('questionModal').classList.remove('hidden');
+
+            // Auto show hint button prominently if diff === 3
+            if (autoTtsEnabled) {
+                setTimeout(() => readCurrentQuestionAloud(), 250);
+            }
+        }
+
+        function readCurrentQuestionAloud() {
+            if (!currentActiveQuestion) return;
+            const letters = ['A', 'B', 'C', 'D'];
+            const optsSpeech = currentActiveQuestion.opts.map((o, i) => `選項 ${letters[i]}：${o}`).join('。 ');
+            speakText(`${currentActiveQuestion.q}。 ${optsSpeech}`);
+        }
+
+        function showQuestionHint() {
+            if (!currentActiveQuestion) return;
+            const box = document.getElementById('qHintBox');
+            box.classList.remove('hidden');
+            sfxStep();
+            if (autoTtsEnabled) {
+                speakText(`錦囊提示：${currentActiveQuestion.hint}`);
+            }
+        }
+
+        function submitQuestionAnswer(selectedIdx) {
+            if (!currentActiveQuestion || !currentModalConfig) return;
+            const q = currentActiveQuestion;
+            const p = players[currentPlayerIdx];
+            const isCorrect = selectedIdx === q.ans;
+
+            // Disable all option buttons & highlight right/wrong
+            q.opts.forEach((_, idx) => {
+                const btn = document.getElementById(`qOptBtn-${idx}`);
+                if (!btn) return;
+                btn.disabled = true;
+                if (idx === q.ans) {
+                    btn.className = 'text-left p-3.5 md:p-4 bg-emerald-300 pixel-btn flex items-center gap-3 ring-4 ring-emerald-600';
+                } else if (idx === selectedIdx && !isCorrect) {
+                    btn.className = 'text-left p-3.5 md:p-4 bg-rose-200 pixel-btn flex items-center gap-3 opacity-80';
+                } else {
+                    btn.className = 'text-left p-3.5 md:p-4 bg-slate-100 pixel-btn flex items-center gap-3 opacity-50';
+                }
+            });
+
+            let outcome;
+            if (isCorrect) {
+                sfxCorrect();
+                p.correctCount++;
+                outcome = currentModalConfig.onCorrect();
+            } else {
+                sfxWrong();
+                outcome = currentModalConfig.onWrong();
+            }
+
+            const fbBox = document.getElementById('qFeedbackBox');
+            fbBox.className = `p-4 pixel-box-sm ${isCorrect ? 'bg-emerald-50 border-emerald-600' : 'bg-rose-50 border-rose-600'}`;
+            document.getElementById('qFeedbackIcon').textContent = isCorrect ? '🎉' : '💡';
+            document.getElementById('qFeedbackTitle').textContent = outcome.title;
+            document.getElementById('qFeedbackDesc').innerHTML = `<span class="text-purple-900">📖 溫習解析：${q.exp}</span><br>${outcome.desc || ''}`;
+
+            const actionContainer = document.getElementById('qActionBtns');
+            actionContainer.innerHTML = outcome.buttons.map((b, i) => `
+                <button onclick="handleModalPostAction(${i})" class="${b.style} font-black px-5 py-2.5 pixel-btn text-sm md:text-base">
+                    ${b.label}
+                </button>
+            `).join('');
+
+            // Store buttons for handler
+            currentModalConfig._activeButtons = outcome.buttons;
+            fbBox.classList.remove('hidden');
+
+            renderPlayerSidebar();
+            updateCenterStageUI();
+
+            if (autoTtsEnabled) {
+                speakText(`${isCorrect ? '答對了！' : '請留意正確答案。'} ${q.exp}`);
+            }
+        }
+
+        function handleModalPostAction(btnIndex) {
+            const btnObj = currentModalConfig && currentModalConfig._activeButtons ? currentModalConfig._activeButtons[btnIndex] : null;
+            if (!btnObj) {
+                closeQuestionModalAndNextTurn();
+                return;
+            }
+            const p = players[currentPlayerIdx];
+
+            if (btnObj.action === 'buyLand') {
+                const tile = BOARD_TILES[btnObj.tileId];
+                if (p.money >= tile.price) {
+                    p.money -= tile.price;
+                    tileOwnership[tile.id] = { ownerIdx: p.idx, level: 1 };
+                    p.lands.push(tile.id);
+                    sfxCoin();
+                    setCenterLog(`🏠 恭喜【${p.name}】成功買下【${tile.name}】！`);
+                }
+                closeQuestionModalAndNextTurn();
+            } else if (btnObj.action === 'upgradeLand') {
+                const own = tileOwnership[btnObj.tileId];
+                const tile = BOARD_TILES[btnObj.tileId];
+                if (own && p.money >= btnObj.cost) {
+                    p.money -= btnObj.cost;
+                    own.level++;
+                    sfxCoin();
+                    setCenterLog(`⭐ 恭喜【${p.name}】將【${tile.name}】升級至 ${own.level} 星！`);
+                }
+                closeQuestionModalAndNextTurn();
+            } else if (btnObj.action === 'startMiniGame') {
+                document.getElementById('questionModal').classList.add('hidden');
+                launchMiniGame(btnObj.tileId);
+            } else if (btnObj.action === 'closeOnly') {
+                document.getElementById('questionModal').classList.add('hidden');
+                renderBoardGrid();
+                renderPlayerSidebar();
+                updateCenterStageUI();
+            } else {
+                closeQuestionModalAndNextTurn();
+            }
+        }
+
+        function closeQuestionModalAndNextTurn() {
+            document.getElementById('questionModal').classList.add('hidden');
+            advanceToNextPlayerTurn();
+        }
+
+        function advanceToNextPlayerTurn() {
+            currentPlayerIdx = (currentPlayerIdx + 1) % players.length;
+            isRolling = false;
+            const rollBtn = document.getElementById('rollDiceBtn');
+            if (rollBtn) rollBtn.disabled = false;
+            renderBoardGrid();
+            renderPlayerSidebar();
+            updateCenterStageUI();
+            const nextP = players[currentPlayerIdx];
+            setCenterLog(`👉 現在輪到【${nextP.name}】！請派代表慢慢走出來點擊「擲骰子」！`);
+        }
+
+        // Extra Classroom Bonus Quiz Button (Teacher can click anytime for whole class)
+        function triggerManualBonusQuiz() {
+            const p = players[currentPlayerIdx];
+            openQuestionModal({
+                icon: '🙋',
+                title: `課堂即時加分題（【${p.name}】作答，答對獎 +$200）`,
+                minDiff: 1,
+                onCorrect: () => {
+                    p.money += 200;
+                    sfxCoin();
+                    return {
+                        title: `🎉 搶答正確！【${p.name}】獲得加分獎金 +$200！`,
+                        desc: `繼續保持這個氣勢！`,
+                        buttons: [{ label: '返回棋盤繼續擲骰 ➔', action: 'closeOnly', style: 'bg-purple-600 text-white' }]
+                    };
+                },
+                onWrong: () => ({
+                    title: `💡 記住這個重點，下次一定能答對！`,
+                    desc: `現在返回棋盤繼續回合。`,
+                    buttons: [{ label: '返回棋盤 ➔', action: 'closeOnly', style: 'bg-slate-600 text-white' }]
+                })
+            });
+        }
+
+        /* =========================================================================
+           10. THREE WHITEBOARD INTERACTIVE MINI-GAMES (No Timer, Safe & Fun!)
+           ========================================================================= */
+        function launchMiniGame(tileId) {
+            const modal = document.getElementById('miniGameModal');
+            modal.classList.remove('hidden');
+
+            if (tileId === 5) {
+                renderTapFaucetsMiniGame();
+            } else if (tileId === 10) {
+                renderClayFloatSinkMiniGame();
+            } else {
+                renderLuckyWheelMiniGame();
+            }
+        }
+
+        // Mini-Game 1: 關水龍頭大作戰 (Tile 5)
+        let tapsRemaining = 5;
+        function renderTapFaucetsMiniGame() {
+            tapsRemaining = 5;
+            document.getElementById('mgTitle').textContent = '🚰 關水龍頭惜水大作戰（不限時）';
+            const content = document.getElementById('mgContent');
+            content.innerHTML = `
+                <div class="text-center space-y-4">
+                    <p class="font-black text-lg text-slate-700">
+                        洗手間有 <b>5 個忘記關緊的水龍頭</b>正在浪費食水！請同學在白板上點擊它們全部關上！
+                    </p>
+                    <div id="faucetGrid" class="grid grid-cols-5 gap-3 py-4">
+                        ${[0,1,2,3,4].map(i => `
+                            <button onclick="shutOffFaucet(${i})" id="faucetBtn-${i}"
+                                    class="p-4 bg-sky-100 hover:bg-sky-200 pixel-btn flex flex-col items-center gap-2">
+                                <span id="faucetIcon-${i}" class="text-4xl animate-bounce">🚰💦</span>
+                                <span id="faucetStatus-${i}" class="text-xs font-black text-rose-600">漏水中！點擊關水</span>
+                            </button>
+                        `).join('')}
+                    </div>
+                    <div id="faucetResult" class="hidden p-4 bg-emerald-100 pixel-box-sm">
+                        <div class="text-xl font-black text-emerald-900 mb-2">🎉 成功關上所有水龍頭！獲得節水大獎 +$350！</div>
+                        <button onclick="finishMiniGameReward(350)" class="bg-purple-600 text-white font-black px-6 py-2.5 pixel-btn text-lg">
+                            領取 $350 並進入下一組 ➔
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function shutOffFaucet(idx) {
+            const btn = document.getElementById(`faucetBtn-${idx}`);
+            if (!btn || btn.disabled) return;
+            btn.disabled = true;
+            btn.className = 'p-4 bg-emerald-200 pixel-btn flex flex-col items-center gap-2';
+            document.getElementById(`faucetIcon-${idx}`).textContent = '🚰✨';
+            document.getElementById(`faucetIcon-${idx}`).className = 'text-4xl';
+            document.getElementById(`faucetStatus-${idx}`).textContent = '✔ 已關緊！';
+            document.getElementById(`faucetStatus-${idx}`).className = 'text-xs font-black text-emerald-800';
+            sfxCoin();
+            tapsRemaining--;
+            if (tapsRemaining <= 0) {
+                sfxCorrect();
+                document.getElementById('faucetResult').classList.remove('hidden');
+            }
+        }
+
+        // Mini-Game 2: 泥膠球浮沉實驗室 (Tile 10 - Directly practices the Test Bonus Question!)
+        function renderClayFloatSinkMiniGame() {
+            document.getElementById('mgTitle').textContent = '🥣 測驗附加題實驗：泥膠球在水中的位置';
+            const content = document.getElementById('mgContent');
+            content.innerHTML = `
+                <div class="flex flex-col md:flex-row items-center justify-around gap-6">
+                    <div class="max-w-md space-y-3">
+                        <div class="bg-amber-100 border-2 border-amber-500 p-3 rounded-lg font-black text-amber-950 text-sm">
+                            📌 《常識測驗(二)》附加題（5%）：<br>
+                            「如果我們把<b>泥膠球</b>放在水中，它會怎樣？在下圖畫出泥膠球的位置。」
+                        </div>
+                        <p class="font-bold text-slate-700">
+                            請同學點擊右邊水杯的正確位置（<b>水面</b>、<b>水中間</b> 或 <b>水杯底部</b>），把實心泥膠球放進去！
+                        </p>
+                        <div id="mgClayMsg" class="p-3 bg-slate-100 rounded-lg font-black text-slate-700 text-sm">
+                            👆 請點擊右邊水杯的正確位置！
+                        </div>
+                        <div id="mgClayDoneBox" class="hidden pt-2">
+                            <button onclick="finishMiniGameReward(400)" class="bg-emerald-500 hover:bg-emerald-600 text-slate-900 font-black px-6 py-3 pixel-btn text-lg w-full">
+                                🏆 記住杯底位置了！領取 $400 獎金 ➔
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col items-center">
+                        <svg width="210" height="230" viewBox="0 0 220 240" class="cursor-pointer select-none bg-sky-50 rounded-xl border-2 border-slate-300 p-2">
+                            <ellipse cx="110" cy="35" rx="70" ry="16" fill="#e0f2fe" stroke="#1e293b" stroke-width="4"/>
+                            <path d="M40 35 L55 205 A55 14 0 0 0 165 205 L180 35" fill="#bae6fd" fill-opacity="0.6" stroke="#1e293b" stroke-width="4"/>
+                            <ellipse cx="110" cy="48" rx="66" ry="12" fill="#38bdf8" fill-opacity="0.4" stroke="#0284c7" stroke-width="2"/>
+                            
+                            <g onclick="handleMgClayClick('top')">
+                                <rect x="55" y="32" width="110" height="45" fill="transparent"/>
+                                <circle id="mgClayTop" cx="110" cy="52" r="20" fill="#94a3b8" stroke="#1e293b" stroke-width="3" stroke-dasharray="4 4" opacity="0.4"/>
+                                <text x="110" y="57" text-anchor="middle" font-size="11" font-weight="bold">位置A: 水面</text>
+                            </g>
+                            <g onclick="handleMgClayClick('mid')">
+                                <rect x="55" y="85" width="110" height="55" fill="transparent"/>
+                                <circle id="mgClayMid" cx="110" cy="115" r="20" fill="#94a3b8" stroke="#1e293b" stroke-width="3" stroke-dasharray="4 4" opacity="0.4"/>
+                                <text x="110" y="120" text-anchor="middle" font-size="11" font-weight="bold">位置B: 水中</text>
+                            </g>
+                            <g onclick="handleMgClayClick('bot')">
+                                <rect x="55" y="145" width="110" height="65" fill="transparent"/>
+                                <circle id="mgClayBot" cx="110" cy="182" r="22" fill="#94a3b8" stroke="#1e293b" stroke-width="3" stroke-dasharray="4 4" opacity="0.45"/>
+                                <text x="110" y="187" text-anchor="middle" font-size="11" font-weight="bold">位置C: 杯底</text>
+                            </g>
+                        </svg>
+                    </div>
+                </div>
+            `;
+        }
+
+        function handleMgClayClick(zone) {
+            const msg = document.getElementById('mgClayMsg');
+            const botCircle = document.getElementById('mgClayBot');
+            if (zone === 'bot') {
+                sfxCorrect();
+                botCircle.setAttribute('opacity', '1');
+                botCircle.setAttribute('fill', '#64748b');
+                botCircle.removeAttribute('stroke-dasharray');
+                msg.className = 'p-3 bg-emerald-100 border-2 border-emerald-600 rounded-lg font-black text-emerald-950 text-sm';
+                msg.innerHTML = '🎉 完全正確！實心泥膠球比水重，會<b>沉到水杯最底部</b>！考試畫圖時記得畫在杯底！';
+                document.getElementById('mgClayDoneBox').classList.remove('hidden');
+                if (autoTtsEnabled) speakText('完全正確！實心泥膠球會沉到水杯最底部！');
+            } else {
+                sfxWrong();
+                msg.className = 'p-3 bg-rose-100 border-2 border-rose-500 rounded-lg font-black text-rose-900 text-sm';
+                msg.innerHTML = '💡 再想一想：實心的泥膠球很重，放進水裡會往下沉到哪裡呢？請再點一次！';
+            }
+        }
+
+        // Mini-Game 3: 幸運水滴轉盤 (Tile 15)
+        function renderLuckyWheelMiniGame() {
+            document.getElementById('mgTitle').textContent = '🎡 三麗鷗幸運水滴大轉盤';
+            const content = document.getElementById('mgContent');
+            content.innerHTML = `
+                <div class="text-center space-y-4">
+                    <p class="font-black text-lg text-slate-700">點擊下方按鈕轉動三麗鷗水滴轉盤，100% 中獎！</p>
+                    <div id="wheelDisplay" class="text-3xl md:text-4xl font-black py-8 px-4 bg-gradient-to-r from-pink-100 via-yellow-100 to-sky-100 pixel-box-sm text-purple-900">
+                        💧 準備轉動幸運轉盤 💧
+                    </div>
+                    <button id="spinWheelBtn" onclick="spinLuckyWheel()" class="bg-pink-500 hover:bg-pink-600 text-white font-black px-8 py-3.5 pixel-btn text-xl">
+                        🎡 點擊轉動轉盤！
+                    </button>
+                    <div id="wheelDoneBox" class="hidden">
+                        <button id="wheelClaimBtn" class="bg-emerald-500 text-slate-900 font-black px-8 py-3 pixel-btn text-lg">
+                            領取獎勵 ➔
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function spinLuckyWheel() {
+            const btn = document.getElementById('spinWheelBtn');
+            const display = document.getElementById('wheelDisplay');
+            if (!btn || btn.disabled) return;
+            btn.disabled = true;
+
+            const prizes = [
+                { label: '💎 特等獎：西江水源大獎 +$500！', amount: 500 },
+                { label: '🌟 頭獎：三麗鷗節水之星 +$400！', amount: 400 },
+                { label: '💧 二獎：清澈食水獎學金 +$350！', amount: 350 },
+                { label: '♻️ 環保獎：再生水推廣大使 +$300！', amount: 300 }
+            ];
+
+            let count = 0;
+            const interval = setInterval(() => {
+                sfxDice();
+                display.textContent = prizes[count % prizes.length].label;
+                count++;
+                if (count >= 14) {
+                    clearInterval(interval);
+                    const win = prizes[Math.floor(Math.random() * prizes.length)];
+                    display.textContent = win.label;
+                    sfxCorrect();
+                    btn.classList.add('hidden');
+                    const doneBox = document.getElementById('wheelDoneBox');
+                    const claimBtn = document.getElementById('wheelClaimBtn');
+                    doneBox.classList.remove('hidden');
+                    claimBtn.textContent = `🎉 領取 +$${win.amount} 並進入下一組 ➔`;
+                    claimBtn.onclick = () => finishMiniGameReward(win.amount);
+                }
+            }, 90);
+        }
+
+        function finishMiniGameReward(amount) {
+            const p = players[currentPlayerIdx];
+            p.money += amount;
+            sfxCoin();
+            document.getElementById('miniGameModal').classList.add('hidden');
+            setCenterLog(`🎮 【${p.name}】完成白板互動小遊戲，贏得獎金 <b>+$${amount}</b>！`);
+            advanceToNextPlayerTurn();
+        }
+
+        /* =========================================================================
+           11. POST-GAME EXAM PAPER REVIEW & PODIUM
+           ========================================================================= */
+        function openPostGameExamModal() {
+            renderPodiumCards();
+            document.getElementById('examReviewModal').classList.remove('hidden');
+        }
+
+        function closePostGameExamModal() {
+            document.getElementById('examReviewModal').classList.add('hidden');
+        }
+
+        function renderPodiumCards() {
+            const container = document.getElementById('podiumCards');
+            // If game hasn't started yet, preview with default characters
+            const list = players.length > 0 ? [...players] : SANRIO_CHARS.slice(0, selectedPlayerCount).map((c, i) => ({
+                ...c, idx: i, money: 1500, lands: [], correctCount: 0
+            }));
+
+            list.sort((a, b) => calculatePlayerTotalAssets(b) - calculatePlayerTotalAssets(a));
+
+            const medals = ['🥇 冠軍', '🥈 亞軍', '🥉 季軍', '🏅 優異', '🏅 優異', '🏅 優異'];
+            container.innerHTML = list.map((p, rank) => {
+                const total = calculatePlayerTotalAssets(p);
+                return `
+                <div class="bg-white p-3 pixel-box-sm flex flex-col items-center text-center" style="border-color:${p.borderHex}">
+                    <span class="text-xs font-black px-2 py-0.5 rounded-full bg-yellow-300 border border-[#2d1b4e] mb-1">
+                        ${medals[rank]}
+                    </span>
+                    <div class="w-12 h-12 p-1 rounded-lg mb-1" style="background:${p.bgLight}">
+                        ${p.svg}
+                    </div>
+                    <div class="font-black text-sm text-slate-800">${p.name}</div>
+                    <div class="font-black text-base text-emerald-700 pixel-font">$${total}</div>
+                    <div class="text-[11px] font-bold text-slate-500">答對 ${p.correctCount} 題｜${p.lands.length} 塊地</div>
+                </div>`;
+            }).join('');
+        }
+
+        function toggleExamBlank(btn, answerText) {
+            const isRevealed = btn.getAttribute('data-revealed') === 'true';
+            if (isRevealed) {
+                btn.textContent = '❓ 點擊看答案';
+                btn.setAttribute('data-revealed', 'false');
+                btn.className = 'exam-blank bg-yellow-100 hover:bg-yellow-200 border-2 border-dashed border-purple-700 px-3 py-0.5 rounded text-purple-900 font-black';
+            } else {
+                btn.textContent = `✔ ${answerText}`;
+                btn.setAttribute('data-revealed', 'true');
+                btn.className = 'exam-blank bg-emerald-200 border-2 border-emerald-700 px-3 py-0.5 rounded text-emerald-950 font-black';
+                sfxCoin();
+                if (autoTtsEnabled) speakText(answerText);
+            }
+        }
+
+        function revealAllExamAnswers(show) {
+            const blanks = document.querySelectorAll('.exam-blank');
+            blanks.forEach(btn => {
+                const onclickStr = btn.getAttribute('onclick') || '';
+                const match = onclickStr.match(/'([^']+)'\)/);
+                if (match && match[1]) {
+                    const ans = match[1];
+                    if (show) {
+                        btn.textContent = `✔ ${ans}`;
+                        btn.setAttribute('data-revealed', 'true');
+                        btn.className = 'exam-blank bg-emerald-200 border-2 border-emerald-700 px-3 py-0.5 rounded text-emerald-950 font-black';
+                    } else {
+                        btn.textContent = '❓';
+                        btn.setAttribute('data-revealed', 'false');
+                        btn.className = 'exam-blank bg-yellow-100 hover:bg-yellow-200 border-2 border-dashed border-purple-700 px-3 py-0.5 rounded text-purple-900 font-black';
+                    }
+                }
+            });
+            sfxStep();
+        }
+
+        function checkExamClayPosition(pos) {
+            const fb = document.getElementById('clayExamFeedback');
+            const topC = document.getElementById('examClayTop');
+            const midC = document.getElementById('examClayMid');
+            const botC = document.getElementById('examClayBot');
+
+            topC.setAttribute('opacity', '0.25');
+            midC.setAttribute('opacity', '0.25');
+            botC.setAttribute('opacity', '0.25');
+
+            if (pos === 'bottom') {
+                sfxCorrect();
+                botC.setAttribute('opacity', '1');
+                botC.setAttribute('fill', '#64748b');
+                botC.removeAttribute('stroke-dasharray');
+                fb.className = 'p-3 rounded-lg bg-emerald-100 border-2 border-emerald-600 font-black text-emerald-950 text-sm';
+                fb.innerHTML = '🎉 答對了！把泥膠球放在水中，它會<b>沉到水杯最底部</b>！考試時記得在杯底畫一個圓球喔！（獲得 5% 滿分！）';
+                if (autoTtsEnabled) speakText('答對了！把泥膠球放在水中，它會沉到水杯最底部！');
+            } else {
+                sfxWrong();
+                if (pos === 'top') topC.setAttribute('opacity', '0.7');
+                if (pos === 'middle') midC.setAttribute('opacity', '0.7');
+                fb.className = 'p-3 rounded-lg bg-rose-100 border-2 border-rose-500 font-black text-rose-900 text-sm';
+                fb.innerHTML = '❌ 位置不對喔！實心的泥膠球比水重，不會浮在水面或停在中間，請再點擊<b>水杯底部</b>試試！';
+                if (autoTtsEnabled) speakText('實心泥膠球不會浮在水面，請點擊水杯底部！');
+            }
+        }
+
+        // Initialize Setup Screen on Load
+        window.onload = function () {
+            renderSetupCharacterPreview();
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.getVoices();
+            }
+        };
+    </script>
+</body>
+</html>
